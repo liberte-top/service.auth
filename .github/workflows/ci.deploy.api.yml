@@ -1,0 +1,16 @@
+name: ci.deploy.api
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: TODO marker
+        run: |
+          echo "TODO: implement api deploy pipeline after refactor spec completion"
+          echo "Expected scope: build/test image -> publish -> apply api manifest"

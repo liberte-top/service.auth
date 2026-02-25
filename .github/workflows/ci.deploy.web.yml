@@ -1,0 +1,16 @@
+name: ci.deploy.web
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: TODO marker
+        run: |
+          echo "TODO: implement web deploy pipeline after Vite+Svelte migration"
+          echo "Expected scope: build static assets -> package runtime image -> apply web manifest"
