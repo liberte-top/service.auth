@@ -6,21 +6,20 @@ Playwright smoke tests:
 2. health 状态可读取
 3. create + read account happy path
 
+Layout:
+
+- `specs/`: Playwright specs
+- `lib/`: shared helpers/utilities for specs
+
 Run locally:
 
 ```bash
+cp .env.example .env
 pnpm install
-E2E_BASE_URL=http://localhost:5173 pnpm test
+pnpm test
 ```
 
-Or use the repo helper script:
+Playwright loads environment variables from `e2e/.env` only.
+Required key:
 
-```bash
-./scripts/run-e2e.sh
-```
-
-Helper script details:
-
-- `docker compose` only starts `db/api/web`
-- E2E runs in a standalone Playwright container (not in compose)
-- default `E2E_BASE_URL` is `http://web`
+- `E2E_BASE_URL` (example: `http://localhost:5173`)

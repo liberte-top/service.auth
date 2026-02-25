@@ -12,11 +12,14 @@ importers:
         specifier: 1.55.0
         version: 1.55.0
       '@types/node':
-        specifier: ^24.3.0
-        version: 24.10.13
+        specifier: 24.3.0
+        version: 24.3.0
+      dotenv:
+        specifier: 17.3.1
+        version: 17.3.1
       typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
+        specifier: 5.9.2
+        version: 5.9.2
 
 packages:
 
@@ -25,8 +28,12 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@types/node@24.10.13':
-    resolution: {integrity: sha512-oH72nZRfDv9lADUBSo104Aq7gPHpQZc4BTx38r9xf9pg5LfP6EzSyH2n7qFmmxRQXh7YlUXODcYsg6PuTDSxGg==}
+  '@types/node@24.3.0':
+    resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
+
+  dotenv@17.3.1:
+    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
+    engines: {node: '>=12'}
 
   fsevents@2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
@@ -43,13 +50,13 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@5.9.2:
+    resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
     engines: {node: '>=14.17'}
     hasBin: true
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+  undici-types@7.10.0:
+    resolution: {integrity: sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==}
 
 snapshots:
 
@@ -57,9 +64,11 @@ snapshots:
     dependencies:
       playwright: 1.55.0
 
-  '@types/node@24.10.13':
+  '@types/node@24.3.0':
     dependencies:
-      undici-types: 7.16.0
+      undici-types: 7.10.0
+
+  dotenv@17.3.1: {}
 
   fsevents@2.3.2:
     optional: true
@@ -72,6 +81,6 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.2
 
-  typescript@5.9.3: {}
+  typescript@5.9.2: {}
 
-  undici-types@7.16.0: {}
+  undici-types@7.10.0: {}

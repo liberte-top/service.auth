@@ -23,6 +23,15 @@
 - [2026-02-25 22:47:43 CST] CHANGED: E2E 从 `docker-compose.yml` 移除，改为 `scripts/run-e2e.sh` 独立容器 runner。
 - [2026-02-25 22:47:43 CST] CHANGED: Web 引入 Vite MPA 多入口示例页（`health.html`、`showcase.html`、`notes.html`）。
 - [2026-02-25 22:47:43 CST] VERIFIED: `cargo test`、`pnpm build`、`./scripts/run-e2e.sh` 通过。
+- [2026-02-25 22:51:45 CST] CHANGED: 删除 `scripts/run-e2e.sh` 与相关文档引用，E2E 回归目录内直接执行命令。
+- [2026-02-25 22:54:27 CST] CHANGED: 新增根 `.env.example`，compose 参数化改为读取环境变量，e2e 引入 `dotenv` 统一加载根/局部 `.env`。
+- [2026-02-25 22:54:27 CST] VERIFIED: `pnpm typecheck`、`pnpm exec playwright test --list` 通过。
+- [2026-02-25 22:56:18 CST] CHANGED: 固化 `web/package.json` 与 `e2e/package.json` 依赖版本号，移除 `^` 范围写法。
+- [2026-02-25 22:56:18 CST] VERIFIED: `pnpm install --no-frozen-lockfile`（web/e2e）、`pnpm typecheck`（e2e）、`pnpm build`（web）通过。
+- [2026-02-25 22:57:41 CST] CHANGED: 根 `.env.example` 移除 E2E 配置，新增 `e2e/.env.example`，并将 Playwright 改为仅读取 `e2e/.env`。
+- [2026-02-25 22:57:41 CST] VERIFIED: `pnpm typecheck`（e2e）、`pnpm exec playwright test --list` 通过。
+- [2026-02-25 23:01:40 CST] CHANGED: `e2e/tests` 迁移为 `e2e/specs`，新增 `e2e/lib` 作为公共逻辑目录，并调整配置引用。
+- [2026-02-25 23:01:40 CST] VERIFIED: `pnpm typecheck`（e2e）、`pnpm exec playwright test --list` 通过。
 
 ## Technical Notes
 - **Files Touched:** `api/**`, `web/**`, `e2e/**`, `.github/workflows/ci.deploy.*.yml`, `docker-compose.yml`, `.task/*`

@@ -11,13 +11,13 @@
     "openapi:gen": "orval --config orval.config.ts"
   },
   "dependencies": {
-    "axios": "^1.7.9",
-    "svelte": "^5.38.0"
+    "axios": "1.7.9",
+    "svelte": "5.38.0"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^4.0.0",
-    "orval": "^8.1.0",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "@sveltejs/vite-plugin-svelte": "4.0.0",
+    "orval": "8.1.0",
+    "typescript": "5.6.3",
+    "vite": "5.4.11"
   }
 }
