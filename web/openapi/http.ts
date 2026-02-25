@@ -1,23 +1,10 @@
-import axios, { type AxiosError, type AxiosRequestConfig } from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 
-function resolveBaseUrl(): string | undefined {
-  if (typeof window === "undefined") {
-    return process.env.AUTH_API_BASE_URL;
-  }
-  return process.env.NEXT_PUBLIC_AUTH_API_BASE_URL;
+const baseURL = import.meta.env.VITE_AUTH_API_BASE_URL ?? "http://localhost:3333";
+
+const AXIOS = axios.create({ baseURL });
+
+export async function customInstance<T>(config: AxiosRequestConfig): Promise<T> {
+  const response = await AXIOS.request<T>(config);
+  return response.data;
 }
-
-export const AXIOS_INSTANCE = axios.create({
-  baseURL: resolveBaseUrl(),
-});
-
-export const customInstance = <T>(
-  config: AxiosRequestConfig,
-  options?: AxiosRequestConfig,
-): Promise<T> => {
-  const mergedConfig = { ...config, ...options };
-  return AXIOS_INSTANCE(mergedConfig).then(({ data }) => data as T);
-};
-
-export type ErrorType<Error> = AxiosError<Error>;
-export type BodyType<BodyData> = BodyData;

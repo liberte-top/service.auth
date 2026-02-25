@@ -1,9 +1,6 @@
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sea_orm_migration::prelude::*;
 
-mod account_authorizations;
-mod account_credentials;
-mod account_settings;
 mod accounts;
 
 pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
@@ -16,9 +13,6 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     accounts::apply(&manager, conn).await?;
-    account_settings::apply(&manager).await?;
-    account_credentials::apply(&manager, conn).await?;
-    account_authorizations::apply(&manager, conn).await?;
     apply_audit_invariants(conn).await?;
 
     Ok(())
@@ -40,12 +34,7 @@ $$ LANGUAGE plpgsql;
     ))
     .await?;
 
-    for table in [
-        "accounts",
-        "account_settings",
-        "account_credentials",
-        "account_authorizations",
-    ] {
+    for table in ["accounts"] {
         let trigger_name = format!("trg_{}_set_updated_at", table);
         conn.execute(Statement::from_string(
             DbBackend::Postgres,

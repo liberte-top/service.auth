@@ -4,10 +4,6 @@ use crate::{
     handler,
     handler::{
         accounts::{AccountResponse, CreateAccount, UpdateAccount},
-        auth::password::{
-            ErrorResponse, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse,
-            VerifyEmailRequest, VerifyEmailResponse,
-        },
         health::Health,
     },
 };
@@ -19,29 +15,17 @@ use crate::{
         handler::accounts::create_account,
         handler::accounts::get_account,
         handler::accounts::update_account,
-        handler::accounts::delete_account,
-        handler::auth::password::register,
-        handler::auth::password::login,
-        handler::auth::password::logout,
-        handler::auth::password::verify_email
+        handler::accounts::delete_account
     ),
     components(schemas(
         Health,
         CreateAccount,
         UpdateAccount,
-        AccountResponse,
-        RegisterRequest,
-        RegisterResponse,
-        LoginRequest,
-        LoginResponse,
-        VerifyEmailRequest,
-        VerifyEmailResponse,
-        ErrorResponse
+        AccountResponse
     )),
     tags(
         (name = "health", description = "Health check"),
-        (name = "accounts", description = "Accounts"),
-        (name = "auth", description = "Authentication")
+        (name = "accounts", description = "Accounts")
     )
 )]
 pub struct ApiDoc;

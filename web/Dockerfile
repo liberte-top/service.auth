@@ -1,28 +1,20 @@
-# Build stage
 FROM node:20-bookworm-slim AS builder
-ARG BUILD_COMMIT=unknown
 WORKDIR /app
 RUN corepack enable
+ARG VITE_AUTH_API_BASE_URL=http://api:3333
+ARG VITE_ENV_LABEL=compose
+ENV VITE_AUTH_API_BASE_URL=$VITE_AUTH_API_BASE_URL
+ENV VITE_ENV_LABEL=$VITE_ENV_LABEL
 
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml* ./
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --no-frozen-lockfile
 
 COPY . ./
-RUN printf '%s\n' "$BUILD_COMMIT" > public/version.txt
-RUN --mount=type=cache,id=next-cache,target=/app/.next/cache pnpm build && CI=true pnpm prune --prod
+RUN pnpm build
 
-# Runtime stage
-FROM gcr.io/distroless/nodejs24-debian12
-WORKDIR /app
+FROM nginx:1.27-alpine AS runtime
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-COPY --from=builder --chown=65532:65532 /app/.next/standalone ./
-COPY --from=builder --chown=65532:65532 /app/.next/static ./.next/static
-COPY --from=builder --chown=65532:65532 /app/public ./public
-
-USER 65532:65532
-
-ENV NODE_ENV=production
-ENV PORT=8888
-
-# No EXPOSE: do not publish ports by default
-CMD ["server.js"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,6 +1,7 @@
 use axum::Router;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -22,15 +23,18 @@ async fn main() {
     let state = AppState::new().await;
     let _ = state.db().conn();
     let _ = state.accounts_repo();
-    let _ = state.config().values();
+    let _ = state.config().port();
 
     let app = Router::new()
         .merge(handler::health::routes())
         .merge(handler::accounts::routes(state.clone()))
-        .merge(handler::auth::github::routes(state.clone()))
-        .merge(handler::auth::password::routes(state.clone()))
-        .merge(handler::session::routes(state.clone()))
-        .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()));
+        .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_headers(Any)
+                .allow_methods(Any),
+        );
     let addr = SocketAddr::from(([0, 0, 0, 0], state.config().port()));
 
     eprintln!("starting server on {}", addr);

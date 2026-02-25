@@ -28,19 +28,12 @@ services:
   web:
     build:
       context: ./web
+      args:
+        VITE_AUTH_API_BASE_URL: http://api:3333
+        VITE_ENV_LABEL: compose
     environment:
       VITE_AUTH_API_BASE_URL: http://api:3333
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - api
-
-  e2e:
-    image: mcr.microsoft.com/playwright:v1.55.0-jammy
-    working_dir: /workspace
-    volumes:
-      - ./e2e:/workspace
-    depends_on:
-      - web
-    profiles:
-      - e2e
