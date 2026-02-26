@@ -1,0 +1,26 @@
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+
+# local env files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# api
+/api/target/
+
+# web
+/web/node_modules/
+/web/dist/
+
+# e2e
+/e2e/node_modules/
+/e2e/.pnpm-store/
+/e2e/test-results/
+/e2e/playwright-report/
+
+# logs
+*.log

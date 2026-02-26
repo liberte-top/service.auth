@@ -1,0 +1,19 @@
+import { defineConfig } from "orval";
+
+export default defineConfig({
+  auth: {
+    input: {
+      target: "http://localhost:3333/api/openapi.json",
+    },
+    output: {
+      target: "openapi/client.ts",
+      client: "axios",
+      override: {
+        mutator: {
+          path: "./openapi/http.ts",
+          name: "customInstance",
+        },
+      },
+    },
+  },
+});

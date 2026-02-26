@@ -1,0 +1,11 @@
+name: ci.deploy.web
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "ci.deploy.web placeholder"

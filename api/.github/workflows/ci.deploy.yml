@@ -1,0 +1,79 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Compute image tag
+        run: |
+          set -euo pipefail
+          echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Patch image (set image)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_TAG
+          script: |
+            set -euo pipefail
+            KUBECTL=/usr/local/bin/kubectl
+            KUBECONFIG=/home/k8s-admin/.kube/config
+            KUBE="${KUBECTL} --kubeconfig ${KUBECONFIG}"
+            ${KUBE} -n service set image deploy/auth-api auth-api=ghcr.io/${{ github.repository }}:${IMAGE_TAG}
+            TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            sudo install -d -m 0755 /var/log/infra
+            echo "${TS} auth-api ${IMAGE_TAG} ${GITHUB_RUN_ID:-unknown}" | sudo tee -a /var/log/infra/auth-api.deploy.log >/dev/null
+
+      - name: E2E check (k8s)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            KUBECTL=/usr/local/bin/kubectl
+            KUBECONFIG=/home/k8s-admin/.kube/config
+            KUBE_NAMESPACE=service
+            KUBE="${KUBECTL} --kubeconfig ${KUBECONFIG}"
+            KUBE_N="${KUBE} -n ${KUBE_NAMESPACE}"
+            ${KUBE_N} rollout status deploy/auth-api --timeout=60s
