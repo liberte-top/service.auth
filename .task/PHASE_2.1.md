@@ -32,6 +32,7 @@
 - [2026-02-25 22:57:41 CST] VERIFIED: `pnpm typecheck`（e2e）、`pnpm exec playwright test --list` 通过。
 - [2026-02-25 23:01:40 CST] CHANGED: `e2e/tests` 迁移为 `e2e/specs`，新增 `e2e/lib` 作为公共逻辑目录，并调整配置引用。
 - [2026-02-25 23:01:40 CST] VERIFIED: `pnpm typecheck`（e2e）、`pnpm exec playwright test --list` 通过。
+- [2026-02-26 22:21:18 CST] CHANGED: `ci.deploy.api.yml` 与 `ci.deploy.web.yml` 精简为最小占位（仅 `workflow_dispatch` + placeholder step）。
 
 ## Technical Notes
 - **Files Touched:** `api/**`, `web/**`, `e2e/**`, `.github/workflows/ci.deploy.*.yml`, `docker-compose.yml`, `.task/*`

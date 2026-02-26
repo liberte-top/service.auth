@@ -2,7 +2,7 @@
 
 - **Branch:** feat/init-service-auth-refactor
 - **Status:** Active
-- **Last-Sync:** 2026-02-25 23:01:40 CST (on Perish)
+- **Last-Sync:** 2026-02-26 22:21:18 CST (on Perish)
 
 ## Phase Stack
 - 2.1 API/Web/E2E/CI 实施闭环（Completed）
@@ -21,6 +21,7 @@
 - [2026-02-25 22:56:18 CST] REFINED: 固化 web/e2e `package.json` 依赖版本号（移除范围符），并同步 lockfile 与构建校验。
 - [2026-02-25 22:57:41 CST] REFINED: 根 `.env(.example)` 与 `e2e/.env(.example)` 解耦，Playwright 仅加载 `e2e/.env`。
 - [2026-02-25 23:01:40 CST] REFINED: E2E 目录重构为 `specs/` + `lib/`，并更新 Playwright/TypeScript 配置路径。
+- [2026-02-26 22:21:18 CST] REFINED: `ci.deploy.api.yml` 与 `ci.deploy.web.yml` 回退为最小占位 workflow（手动触发 + placeholder job）。
 
 ## Global References
 - **Docs:** .task/docs/REFAC_SPEC.md
