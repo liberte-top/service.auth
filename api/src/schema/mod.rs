@@ -4,6 +4,7 @@ use sea_orm_migration::prelude::*;
 mod account_emails;
 mod accounts;
 mod route_policies;
+mod route_policy_scopes;
 
 pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     let manager = SchemaManager::new(conn);
@@ -17,6 +18,7 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     accounts::apply(&manager, conn).await?;
     account_emails::apply(&manager, conn).await?;
     route_policies::apply(&manager, conn).await?;
+    route_policy_scopes::apply(&manager, conn).await?;
     apply_audit_invariants(conn).await?;
 
     Ok(())

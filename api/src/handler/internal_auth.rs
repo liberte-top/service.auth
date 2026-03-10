@@ -7,7 +7,7 @@ pub async fn access_check(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> axum::response::Response {
-    state.access().check(&headers)
+    state.access().check(&headers).await
 }
 
 pub fn routes(state: Arc<AppState>) -> Router {

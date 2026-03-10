@@ -69,6 +69,30 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
         .await?;
     }
 
+    seed_smoke_route_policies(conn).await?;
+
+    Ok(())
+}
+
+async fn seed_smoke_route_policies(conn: &DatabaseConnection) -> Result<(), DbErr> {
+    conn.execute(Statement::from_string(
+        DbBackend::Postgres,
+        r#"
+INSERT INTO route_policies (service_slug, route_key, host_pattern, path_pattern, method, enabled, priority)
+VALUES
+  ('smoke', 'smoke.viewer.read', 'smoke.liberte.top', '/api/v1/viewer', 'GET', true, 100),
+  ('smoke', 'smoke.notes.read', 'smoke.liberte.top', '/api/v1/notes', 'GET', true, 100),
+  ('smoke', 'smoke.notes.write', 'smoke.liberte.top', '/api/v1/notes', 'POST', true, 100)
+ON CONFLICT (service_slug, route_key, method) DO UPDATE SET
+  host_pattern = EXCLUDED.host_pattern,
+  path_pattern = EXCLUDED.path_pattern,
+  enabled = EXCLUDED.enabled,
+  priority = EXCLUDED.priority;
+"#
+        .to_string(),
+    ))
+    .await?;
+
     Ok(())
 }
 

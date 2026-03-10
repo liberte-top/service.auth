@@ -2,7 +2,10 @@ use axum::{
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use async_trait::async_trait;
 use std::sync::Arc;
+
+use crate::repo::route_policies::{RoutePoliciesRepo, RoutePolicyRecord};
 
 use super::config::ConfigService;
 
@@ -11,17 +14,25 @@ const DEMO_AUTH_TYPE: &str = "session";
 const DEMO_EMAIL: &str = "demo@example.com";
 const DEMO_SCOPES_HEADER: &str = "notes:read profile:read";
 
+#[async_trait]
 pub trait AccessService: Send + Sync {
-    fn check(&self, headers: &HeaderMap) -> Response;
+    async fn check(&self, headers: &HeaderMap) -> Response;
 }
 
 pub struct AccessServiceImpl {
     config: Arc<dyn ConfigService>,
+    route_policies_repo: Arc<dyn RoutePoliciesRepo>,
 }
 
 impl AccessServiceImpl {
-    pub fn new(config: Arc<dyn ConfigService>) -> Self {
-        Self { config }
+    pub fn new(
+        config: Arc<dyn ConfigService>,
+        route_policies_repo: Arc<dyn RoutePoliciesRepo>,
+    ) -> Self {
+        Self {
+            config,
+            route_policies_repo,
+        }
     }
 
     fn is_authenticated(&self, headers: &HeaderMap) -> bool {
@@ -73,8 +84,9 @@ impl AccessServiceImpl {
     }
 }
 
+#[async_trait]
 impl AccessService for AccessServiceImpl {
-    fn check(&self, headers: &HeaderMap) -> Response {
+    async fn check(&self, headers: &HeaderMap) -> Response {
         if !self.is_authenticated(headers) {
             return self.unauthorized_response(headers);
         }
@@ -88,7 +100,10 @@ impl AccessService for AccessServiceImpl {
             .and_then(|raw| raw.to_str().ok())
             .unwrap_or("/");
 
-        if let Err(status) = authorize_request(method, path) {
+        if let Err(status) = self
+            .authorize_request(host_from_headers(headers), method, path)
+            .await
+        {
             return status.into_response();
         }
 
@@ -105,11 +120,52 @@ impl AccessService for AccessServiceImpl {
     }
 }
 
-fn authorize_request(method: &str, path: &str) -> Result<(), StatusCode> {
-    match (method, path) {
-        ("GET", p) if p.starts_with("/api/v1/viewer") => Ok(()),
-        ("GET", p) if p.starts_with("/api/v1/notes") => Ok(()),
-        ("POST", p) if p.starts_with("/api/v1/notes") => Err(StatusCode::FORBIDDEN),
-        _ => Ok(()),
+impl AccessServiceImpl {
+    async fn authorize_request(
+        &self,
+        host: &str,
+        method: &str,
+        path: &str,
+    ) -> Result<(), StatusCode> {
+        let policies = self.route_policies_repo.list_enabled().await.unwrap_or_default();
+
+        let Some(policy) = match_policy(&policies, host, method, path) else {
+            return Ok(());
+        };
+
+        let granted = demo_scopes();
+        if policy
+            .required_scopes
+            .iter()
+            .all(|scope| granted.iter().any(|item| item == scope))
+        {
+            Ok(())
+        } else {
+            Err(StatusCode::FORBIDDEN)
+        }
     }
+}
+
+fn host_from_headers(headers: &HeaderMap) -> &str {
+    headers
+        .get("x-forwarded-host")
+        .and_then(|raw| raw.to_str().ok())
+        .unwrap_or("smoke.liberte.top")
+}
+
+fn demo_scopes() -> Vec<&'static str> {
+    vec!["notes:read", "profile:read"]
+}
+
+fn match_policy<'a>(
+    policies: &'a [RoutePolicyRecord],
+    host: &str,
+    method: &str,
+    path: &str,
+) -> Option<&'a RoutePolicyRecord> {
+    policies.iter().find(|policy| {
+        policy.host_pattern == host
+            && policy.method.eq_ignore_ascii_case(method)
+            && path.starts_with(policy.path_pattern.as_str())
+    })
 }
