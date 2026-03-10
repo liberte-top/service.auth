@@ -5,15 +5,15 @@ use crate::{
     handler::{
         accounts::{AccountResponse, CreateAccount, UpdateAccount},
         health::Health,
-        session::AuthContextResponse,
     },
+    service::auth_context::AuthContextResponse,
 };
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
         handler::health::health,
-        handler::session::auth_context,
+        handler::public_auth::context,
         handler::accounts::create_account,
         handler::accounts::get_account,
         handler::accounts::update_account,

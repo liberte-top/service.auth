@@ -27,8 +27,9 @@ async fn main() {
 
     let app = Router::new()
         .merge(handler::health::routes())
-        .merge(handler::accounts::routes(state.clone()))
-        .merge(handler::session::routes(state.clone()))
+        .merge(handler::public_auth::routes(state.clone()))
+        .merge(handler::internal_auth::routes(state.clone()))
+        .merge(handler::admin_accounts::routes(state.clone()))
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()))
         .layer(
             CorsLayer::new()

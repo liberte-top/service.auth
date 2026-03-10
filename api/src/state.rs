@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 use crate::{
     repo::accounts::AccountsRepo,
-    service::{accounts::AccountsService, config::ConfigService},
+    service::{
+        access::AccessService, accounts::AccountsService, auth_context::AuthContextService,
+        config::ConfigService,
+    },
 };
 
 pub trait DatabaseClient: Send + Sync {
@@ -36,6 +39,8 @@ pub struct AppState {
     db: Arc<dyn DatabaseClient>,
     accounts_repo: Arc<dyn AccountsRepo>,
     accounts: Arc<dyn AccountsService>,
+    access: Arc<dyn AccessService>,
+    auth_context: Arc<dyn AuthContextService>,
     config: Arc<dyn ConfigService>,
 }
 
@@ -47,11 +52,19 @@ impl AppState {
             accounts_repo.clone(),
         ));
         let config = Arc::new(crate::service::config::ConfigServiceImpl::new());
+        let access = Arc::new(crate::service::access::AccessServiceImpl::new(
+            config.clone(),
+        ));
+        let auth_context = Arc::new(crate::service::auth_context::AuthContextServiceImpl::new(
+            config.clone(),
+        ));
 
         Arc::new(Self {
             db,
             accounts_repo,
             accounts,
+            access,
+            auth_context,
             config,
         })
     }
@@ -62,6 +75,14 @@ impl AppState {
 
     pub fn accounts(&self) -> &dyn AccountsService {
         self.accounts.as_ref()
+    }
+
+    pub fn access(&self) -> &dyn AccessService {
+        self.access.as_ref()
+    }
+
+    pub fn auth_context(&self) -> &dyn AuthContextService {
+        self.auth_context.as_ref()
     }
 
     pub fn accounts_repo(&self) -> &dyn AccountsRepo {

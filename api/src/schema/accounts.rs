@@ -83,7 +83,7 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
 }
 
 #[derive(Iden)]
-enum Accounts {
+pub enum Accounts {
     Table,
     Id,
     Uid,

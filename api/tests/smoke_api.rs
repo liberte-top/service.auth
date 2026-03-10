@@ -41,7 +41,7 @@ async fn smoke_health_and_accounts_crud() {
     assert_eq!(health_body.status, "ok");
 
     let create = client
-        .post(format!("{}/api/v1/accounts", base_url))
+        .post(format!("{}/api/v1/admin/accounts", base_url))
         .json(&serde_json::json!({
             "account_type": "user",
             "username": "smoke-user",
@@ -55,14 +55,20 @@ async fn smoke_health_and_accounts_crud() {
     assert_eq!(created.account_type, "user");
 
     let get = client
-        .get(format!("{}/api/v1/accounts/{}", base_url, created.uid))
+        .get(format!(
+            "{}/api/v1/admin/accounts/{}",
+            base_url, created.uid
+        ))
         .send()
         .await
         .expect("get request failed");
     assert_eq!(get.status(), StatusCode::OK);
 
     let patch = client
-        .patch(format!("{}/api/v1/accounts/{}", base_url, created.uid))
+        .patch(format!(
+            "{}/api/v1/admin/accounts/{}",
+            base_url, created.uid
+        ))
         .json(&serde_json::json!({
             "username": "smoke-user-updated"
         }))
@@ -72,7 +78,10 @@ async fn smoke_health_and_accounts_crud() {
     assert_eq!(patch.status(), StatusCode::OK);
 
     let delete = client
-        .delete(format!("{}/api/v1/accounts/{}", base_url, created.uid))
+        .delete(format!(
+            "{}/api/v1/admin/accounts/{}",
+            base_url, created.uid
+        ))
         .send()
         .await
         .expect("delete request failed");
