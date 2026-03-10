@@ -124,8 +124,6 @@ jobs:
           title: "chore: promote auth-web image"
           body: |
             Update `auth-web` to `ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}`.
-          labels: |
-            automated
 
       - name: Enable PR auto-merge
         if: github.event_name != 'pull_request' && steps.create_pr.outputs.pull-request-number != ''

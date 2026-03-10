@@ -114,8 +114,6 @@ jobs:
           title: "chore: promote auth-api image"
           body: |
             Update `auth-api` to `ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}`.
-          labels: |
-            automated
 
       - name: Enable PR auto-merge
         if: github.event_name != 'pull_request' && steps.create_pr.outputs.pull-request-number != ''
