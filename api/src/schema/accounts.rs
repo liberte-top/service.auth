@@ -79,6 +79,23 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
     ))
     .await?;
 
+    seed_demo_account(conn).await?;
+
+    Ok(())
+}
+
+async fn seed_demo_account(conn: &DatabaseConnection) -> Result<(), DbErr> {
+    conn.execute(Statement::from_string(
+        DbBackend::Postgres,
+        r#"
+INSERT INTO accounts (uid, account_type, username, email)
+VALUES ('11111111-1111-1111-1111-111111111111', 'user', 'demo-user', 'demo@example.com')
+ON CONFLICT DO NOTHING;
+"#
+        .to_string(),
+    ))
+    .await?;
+
     Ok(())
 }
 

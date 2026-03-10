@@ -3,9 +3,12 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
+
+use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
 
 use super::config::ConfigService;
 
@@ -18,17 +21,28 @@ pub struct AuthContextResponse {
     pub scopes: Vec<String>,
 }
 
+#[async_trait]
 pub trait AuthContextService: Send + Sync {
-    fn context(&self, headers: &HeaderMap) -> Response;
+    async fn context(&self, headers: &HeaderMap) -> Response;
 }
 
 pub struct AuthContextServiceImpl {
     config: Arc<dyn ConfigService>,
+    accounts_repo: Arc<dyn AccountsRepo>,
+    account_scopes_repo: Arc<dyn AccountScopesRepo>,
 }
 
 impl AuthContextServiceImpl {
-    pub fn new(config: Arc<dyn ConfigService>) -> Self {
-        Self { config }
+    pub fn new(
+        config: Arc<dyn ConfigService>,
+        accounts_repo: Arc<dyn AccountsRepo>,
+        account_scopes_repo: Arc<dyn AccountScopesRepo>,
+    ) -> Self {
+        Self {
+            config,
+            accounts_repo,
+            account_scopes_repo,
+        }
     }
 
     fn is_authenticated(&self, headers: &HeaderMap) -> bool {
@@ -46,8 +60,9 @@ impl AuthContextServiceImpl {
     }
 }
 
+#[async_trait]
 impl AuthContextService for AuthContextServiceImpl {
-    fn context(&self, headers: &HeaderMap) -> Response {
+    async fn context(&self, headers: &HeaderMap) -> Response {
         let authenticated = self.is_authenticated(headers);
 
         if authenticated
@@ -64,10 +79,11 @@ impl AuthContextService for AuthContextServiceImpl {
         }
 
         let mut response = if authenticated {
+            let scopes = self.resolve_scopes().await;
             Json(AuthContextResponse {
                 subject: Some("demo-user".to_owned()),
                 auth_type: Some("session".to_owned()),
-                scopes: vec!["notes:read".to_owned(), "profile:read".to_owned()],
+                scopes,
             })
             .into_response()
         } else {
@@ -78,5 +94,25 @@ impl AuthContextService for AuthContextServiceImpl {
             .headers_mut()
             .insert(header::ETAG, HeaderValue::from_static(DEMO_SESSION_ETAG));
         response
+    }
+}
+
+impl AuthContextServiceImpl {
+    async fn resolve_scopes(&self) -> Vec<String> {
+        let Some(account) = self
+            .accounts_repo
+            .find_by_username("demo-user")
+            .await
+            .ok()
+            .flatten()
+        else {
+            return vec!["notes:read".to_owned(), "profile:read".to_owned()];
+        };
+
+        self.account_scopes_repo
+            .list_by_account_id(account.id)
+            .await
+            .map(|items| items.into_iter().map(|item| item.scope_name).collect())
+            .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
     }
 }

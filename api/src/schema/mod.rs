@@ -1,6 +1,7 @@
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sea_orm_migration::prelude::*;
 
+mod account_scopes;
 mod account_emails;
 mod accounts;
 mod route_policies;
@@ -16,6 +17,7 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     accounts::apply(&manager, conn).await?;
+    account_scopes::apply(&manager, conn).await?;
     account_emails::apply(&manager, conn).await?;
     route_policies::apply(&manager, conn).await?;
     route_policy_scopes::apply(&manager, conn).await?;

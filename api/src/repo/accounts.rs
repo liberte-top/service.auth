@@ -9,6 +9,10 @@ pub trait AccountsRepo: Send + Sync {
     async fn insert(&self, model: accounts::ActiveModel)
         -> Result<accounts::Model, sea_orm::DbErr>;
     async fn find_by_uid(&self, uid: Uuid) -> Result<Option<accounts::Model>, sea_orm::DbErr>;
+    async fn find_by_username(
+        &self,
+        username: &str,
+    ) -> Result<Option<accounts::Model>, sea_orm::DbErr>;
     async fn update(&self, model: accounts::ActiveModel)
         -> Result<accounts::Model, sea_orm::DbErr>;
 }
@@ -35,6 +39,17 @@ impl AccountsRepo for SeaOrmAccountsRepo {
     async fn find_by_uid(&self, uid: Uuid) -> Result<Option<accounts::Model>, sea_orm::DbErr> {
         accounts::Entity::find()
             .filter(accounts::Column::Uid.eq(uid))
+            .filter(accounts::Column::DeletedAt.is_null())
+            .one(self.db.conn())
+            .await
+    }
+
+    async fn find_by_username(
+        &self,
+        username: &str,
+    ) -> Result<Option<accounts::Model>, sea_orm::DbErr> {
+        accounts::Entity::find()
+            .filter(accounts::Column::Username.eq(username))
             .filter(accounts::Column::DeletedAt.is_null())
             .one(self.db.conn())
             .await

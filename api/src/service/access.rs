@@ -5,7 +5,11 @@ use axum::{
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::repo::route_policies::{RoutePoliciesRepo, RoutePolicyRecord};
+use crate::repo::{
+    account_scopes::AccountScopesRepo,
+    accounts::AccountsRepo,
+    route_policies::{RoutePoliciesRepo, RoutePolicyRecord},
+};
 
 use super::config::ConfigService;
 
@@ -21,16 +25,22 @@ pub trait AccessService: Send + Sync {
 
 pub struct AccessServiceImpl {
     config: Arc<dyn ConfigService>,
+    accounts_repo: Arc<dyn AccountsRepo>,
+    account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
 }
 
 impl AccessServiceImpl {
     pub fn new(
         config: Arc<dyn ConfigService>,
+        accounts_repo: Arc<dyn AccountsRepo>,
+        account_scopes_repo: Arc<dyn AccountScopesRepo>,
         route_policies_repo: Arc<dyn RoutePoliciesRepo>,
     ) -> Self {
         Self {
             config,
+            accounts_repo,
+            account_scopes_repo,
             route_policies_repo,
         }
     }
@@ -133,7 +143,7 @@ impl AccessServiceImpl {
             return Ok(());
         };
 
-        let granted = demo_scopes();
+        let granted = self.resolve_scopes().await;
         if policy
             .required_scopes
             .iter()
@@ -144,6 +154,24 @@ impl AccessServiceImpl {
             Err(StatusCode::FORBIDDEN)
         }
     }
+
+    async fn resolve_scopes(&self) -> Vec<String> {
+        let Some(account) = self
+            .accounts_repo
+            .find_by_username(DEMO_SUBJECT)
+            .await
+            .ok()
+            .flatten()
+        else {
+            return vec!["notes:read".to_owned(), "profile:read".to_owned()];
+        };
+
+        self.account_scopes_repo
+            .list_by_account_id(account.id)
+            .await
+            .map(|items| items.into_iter().map(|item| item.scope_name).collect())
+            .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
+    }
 }
 
 fn host_from_headers(headers: &HeaderMap) -> &str {
@@ -151,10 +179,6 @@ fn host_from_headers(headers: &HeaderMap) -> &str {
         .get("x-forwarded-host")
         .and_then(|raw| raw.to_str().ok())
         .unwrap_or("smoke.liberte.top")
-}
-
-fn demo_scopes() -> Vec<&'static str> {
-    vec!["notes:read", "profile:read"]
 }
 
 fn match_policy<'a>(

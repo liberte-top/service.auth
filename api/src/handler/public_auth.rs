@@ -17,7 +17,7 @@ pub async fn context(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> axum::response::Response {
-    state.auth_context().context(&headers)
+    state.auth_context().context(&headers).await
 }
 
 pub fn routes(state: Arc<AppState>) -> Router {
