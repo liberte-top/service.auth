@@ -10,8 +10,8 @@ RUN cargo build --release --locked
 # Runtime stage (distroless for smaller footprint)
 FROM gcr.io/distroless/cc-debian12
 WORKDIR /app
-COPY --from=builder /app/target/release/auth-api /app/auth-api
+COPY --from=builder /app/target/release/service-auth-api /app/service-auth-api
 
 USER nonroot:nonroot
 EXPOSE 3333
-ENTRYPOINT ["/app/auth-api"]
+ENTRYPOINT ["/app/service-auth-api"]

@@ -1,9 +1,7 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable
-ARG VITE_AUTH_API_BASE_URL=http://api:3333
 ARG VITE_ENV_LABEL=compose
-ENV VITE_AUTH_API_BASE_URL=$VITE_AUTH_API_BASE_URL
 ENV VITE_ENV_LABEL=$VITE_ENV_LABEL
 
 COPY package.json pnpm-lock.yaml* ./

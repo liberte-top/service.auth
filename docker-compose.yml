@@ -24,15 +24,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - auth-api
 
   web:
     build:
       context: ./web
       args:
-        VITE_AUTH_API_BASE_URL: ${WEB_VITE_AUTH_API_BASE_URL:-http://api:3333}
         VITE_ENV_LABEL: ${WEB_VITE_ENV_LABEL:-compose}
-    environment:
-      VITE_AUTH_API_BASE_URL: ${WEB_VITE_AUTH_API_BASE_URL:-http://api:3333}
     ports:
       - "${WEB_PUBLIC_PORT:-5173}:80"
     depends_on:
