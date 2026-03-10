@@ -63,6 +63,9 @@ END $$;
         ))
         .await?;
 
+    }
+
+    for table in ["accounts"] {
         let constraint_name = format!("{}_deleted_pair_check", table);
         conn.execute(Statement::from_string(
             DbBackend::Postgres,
