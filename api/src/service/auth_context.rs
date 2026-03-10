@@ -9,6 +9,7 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
+use crate::repo::api_keys::ApiKeysRepo;
 use crate::repo::sessions::SessionsRepo;
 
 use super::config::ConfigService;
@@ -29,6 +30,7 @@ pub trait AuthContextService: Send + Sync {
 
 pub struct AuthContextServiceImpl {
     config: Arc<dyn ConfigService>,
+    api_keys_repo: Arc<dyn ApiKeysRepo>,
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     sessions_repo: Arc<dyn SessionsRepo>,
@@ -37,12 +39,14 @@ pub struct AuthContextServiceImpl {
 impl AuthContextServiceImpl {
     pub fn new(
         config: Arc<dyn ConfigService>,
+        api_keys_repo: Arc<dyn ApiKeysRepo>,
         accounts_repo: Arc<dyn AccountsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
         sessions_repo: Arc<dyn SessionsRepo>,
     ) -> Self {
         Self {
             config,
+            api_keys_repo,
             accounts_repo,
             account_scopes_repo,
             sessions_repo,
@@ -92,7 +96,13 @@ impl AuthContextServiceImpl {
 #[async_trait]
 impl AuthContextService for AuthContextServiceImpl {
     async fn context(&self, headers: &HeaderMap) -> Response {
-        let subject = self.session_subject(headers).await;
+        let session_subject = self.session_subject(headers).await;
+        let api_key_subject = if session_subject.is_none() {
+            self.api_key_subject(headers).await
+        } else {
+            None
+        };
+        let subject = session_subject.or(api_key_subject.clone());
         let authenticated = subject.is_some();
 
         if authenticated
@@ -113,7 +123,11 @@ impl AuthContextService for AuthContextServiceImpl {
             let scopes = self.resolve_scopes(&subject).await;
             Json(AuthContextResponse {
                 subject: Some(subject),
-                auth_type: Some("session".to_owned()),
+                auth_type: Some(if api_key_subject.is_some() {
+                    "api_key".to_owned()
+                } else {
+                    "session".to_owned()
+                }),
                 scopes,
             })
             .into_response()
@@ -146,4 +160,27 @@ impl AuthContextServiceImpl {
             .map(|items| items.into_iter().map(|item| item.scope_name).collect())
             .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
     }
+
+    async fn api_key_subject(&self, headers: &HeaderMap) -> Option<String> {
+        let raw = headers
+            .get(header::AUTHORIZATION)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.strip_prefix("Bearer "))
+            .or_else(|| headers.get("x-api-key").and_then(|value| value.to_str().ok()))?
+            .trim();
+
+        let key = self
+            .api_keys_repo
+            .find_active_by_key_hash(raw)
+            .await
+            .ok()
+            .flatten()?;
+
+        if key.key_prefix == "demo" {
+            Some("demo-user".to_owned())
+        } else {
+            None
+        }
+    }
+
 }

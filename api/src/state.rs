@@ -2,6 +2,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::{
+    repo::api_keys::ApiKeysRepo,
     repo::account_scopes::AccountScopesRepo,
     repo::route_policies::RoutePoliciesRepo,
     repo::sessions::SessionsRepo,
@@ -40,6 +41,7 @@ impl DatabaseClient for SeaOrmDatabaseClient {
 
 pub struct AppState {
     db: Arc<dyn DatabaseClient>,
+    api_keys_repo: Arc<dyn ApiKeysRepo>,
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
@@ -53,6 +55,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new() -> Arc<Self> {
         let db = Arc::new(SeaOrmDatabaseClient::new().await);
+        let api_keys_repo = Arc::new(crate::repo::api_keys::SeaOrmApiKeysRepo::new(db.clone()));
         let accounts_repo = Arc::new(crate::repo::accounts::SeaOrmAccountsRepo::new(db.clone()));
         let account_scopes_repo =
             Arc::new(crate::repo::account_scopes::SeaOrmAccountScopesRepo::new(db.clone()));
@@ -65,6 +68,7 @@ impl AppState {
         let config = Arc::new(crate::service::config::ConfigServiceImpl::new());
         let access = Arc::new(crate::service::access::AccessServiceImpl::new(
             config.clone(),
+            api_keys_repo.clone(),
             accounts_repo.clone(),
             account_scopes_repo.clone(),
             route_policies_repo.clone(),
@@ -72,6 +76,7 @@ impl AppState {
         ));
         let auth_context = Arc::new(crate::service::auth_context::AuthContextServiceImpl::new(
             config.clone(),
+            api_keys_repo.clone(),
             accounts_repo.clone(),
             account_scopes_repo.clone(),
             sessions_repo.clone(),
@@ -79,6 +84,7 @@ impl AppState {
 
         Arc::new(Self {
             db,
+            api_keys_repo,
             accounts_repo,
             account_scopes_repo,
             route_policies_repo,
@@ -108,6 +114,10 @@ impl AppState {
 
     pub fn accounts_repo(&self) -> &dyn AccountsRepo {
         self.accounts_repo.as_ref()
+    }
+
+    pub fn api_keys_repo(&self) -> &dyn ApiKeysRepo {
+        self.api_keys_repo.as_ref()
     }
 
     pub fn route_policies_repo(&self) -> &dyn RoutePoliciesRepo {

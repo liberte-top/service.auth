@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::repo::{
+    api_keys::ApiKeysRepo,
     account_scopes::AccountScopesRepo,
     accounts::AccountsRepo,
     route_policies::{RoutePoliciesRepo, RoutePolicyRecord},
@@ -17,7 +18,7 @@ use super::config::ConfigService;
 const DEMO_SUBJECT: &str = "demo-user";
 const DEMO_AUTH_TYPE: &str = "session";
 const DEMO_EMAIL: &str = "demo@example.com";
-const DEMO_SCOPES_HEADER: &str = "notes:read profile:read";
+const DEMO_API_KEY_PREFIX: &str = "demo";
 
 #[async_trait]
 pub trait AccessService: Send + Sync {
@@ -26,6 +27,7 @@ pub trait AccessService: Send + Sync {
 
 pub struct AccessServiceImpl {
     config: Arc<dyn ConfigService>,
+    api_keys_repo: Arc<dyn ApiKeysRepo>,
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
@@ -35,6 +37,7 @@ pub struct AccessServiceImpl {
 impl AccessServiceImpl {
     pub fn new(
         config: Arc<dyn ConfigService>,
+        api_keys_repo: Arc<dyn ApiKeysRepo>,
         accounts_repo: Arc<dyn AccountsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
         route_policies_repo: Arc<dyn RoutePoliciesRepo>,
@@ -42,6 +45,7 @@ impl AccessServiceImpl {
     ) -> Self {
         Self {
             config,
+            api_keys_repo,
             accounts_repo,
             account_scopes_repo,
             route_policies_repo,
@@ -126,7 +130,7 @@ impl AccessServiceImpl {
 #[async_trait]
 impl AccessService for AccessServiceImpl {
     async fn check(&self, headers: &HeaderMap) -> Response {
-        let Some(subject) = self.session_subject(headers).await else {
+        let Some(identity) = self.identity(headers).await else {
             return self.unauthorized_response(headers);
         };
 
@@ -140,7 +144,7 @@ impl AccessService for AccessServiceImpl {
             .unwrap_or("/");
 
         if let Err(status) = self
-            .authorize_request(&subject, host_from_headers(headers), method, path)
+            .authorize_request(&identity.subject, host_from_headers(headers), method, path)
             .await
         {
             return status.into_response();
@@ -150,20 +154,53 @@ impl AccessService for AccessServiceImpl {
         let response_headers = response.headers_mut();
         response_headers.insert(
             "x-auth-subject",
-            HeaderValue::from_str(&subject)
+            HeaderValue::from_str(&identity.subject)
                 .unwrap_or_else(|_| HeaderValue::from_static(DEMO_SUBJECT)),
         );
-        response_headers.insert("x-auth-type", HeaderValue::from_static(DEMO_AUTH_TYPE));
+        response_headers.insert(
+            "x-auth-type",
+            HeaderValue::from_str(&identity.auth_type)
+                .unwrap_or_else(|_| HeaderValue::from_static(DEMO_AUTH_TYPE)),
+        );
         response_headers.insert(
             "x-auth-scopes",
-            HeaderValue::from_static(DEMO_SCOPES_HEADER),
+            HeaderValue::from_str(&identity.scopes.join(" "))
+                .unwrap_or_else(|_| HeaderValue::from_static("notes:read profile:read")),
         );
         response_headers.insert("x-auth-email", HeaderValue::from_static(DEMO_EMAIL));
         response
     }
 }
 
+struct ResolvedIdentity {
+    subject: String,
+    auth_type: String,
+    scopes: Vec<String>,
+}
+
 impl AccessServiceImpl {
+    async fn identity(&self, headers: &HeaderMap) -> Option<ResolvedIdentity> {
+        if let Some(subject) = self.session_subject(headers).await {
+            let scopes = self.resolve_scopes(&subject).await;
+            return Some(ResolvedIdentity {
+                subject,
+                auth_type: DEMO_AUTH_TYPE.to_owned(),
+                scopes,
+            });
+        }
+
+        if let Some(subject) = self.api_key_subject(headers).await {
+            let scopes = self.resolve_scopes(&subject).await;
+            return Some(ResolvedIdentity {
+                subject,
+                auth_type: "api_key".to_owned(),
+                scopes,
+            });
+        }
+
+        None
+    }
+
     async fn authorize_request(
         &self,
         subject: &str,
@@ -205,6 +242,28 @@ impl AccessServiceImpl {
             .await
             .map(|items| items.into_iter().map(|item| item.scope_name).collect())
             .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
+    }
+
+    async fn api_key_subject(&self, headers: &HeaderMap) -> Option<String> {
+        let raw = headers
+            .get(header::AUTHORIZATION)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.strip_prefix("Bearer "))
+            .or_else(|| headers.get("x-api-key").and_then(|value| value.to_str().ok()))?
+            .trim();
+
+        let key = self
+            .api_keys_repo
+            .find_active_by_key_hash(raw)
+            .await
+            .ok()
+            .flatten()?;
+
+        if key.key_prefix == DEMO_API_KEY_PREFIX {
+            Some(DEMO_SUBJECT.to_owned())
+        } else {
+            None
+        }
     }
 }
 

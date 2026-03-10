@@ -48,6 +48,25 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
         .await?;
     }
 
+    seed_demo_api_key(conn).await?;
+
+    Ok(())
+}
+
+async fn seed_demo_api_key(conn: &DatabaseConnection) -> Result<(), DbErr> {
+    conn.execute(Statement::from_string(
+        DbBackend::Postgres,
+        r#"
+INSERT INTO api_keys (account_id, name, key_prefix, key_hash)
+SELECT a.id, 'demo-smoke-key', 'demo', 'demo-smoke-api-key'
+FROM accounts a
+WHERE lower(a.username) = 'demo-user'
+ON CONFLICT DO NOTHING;
+"#
+        .to_string(),
+    ))
+    .await?;
+
     Ok(())
 }
 
