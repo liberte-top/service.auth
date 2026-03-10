@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host --port 5173",
-    "build": "vite build",
+    "build": "node ./scripts/write-version.mjs && vite build",
     "preview": "vite preview --host --port 5173",
     "openapi:gen": "orval --config orval.config.ts"
   },

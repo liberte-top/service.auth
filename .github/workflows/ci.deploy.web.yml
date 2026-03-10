@@ -42,11 +42,21 @@ jobs:
       - name: Build web
         working-directory: web
         env:
+          APP_BUILD_SHA: ${{ github.sha }}
+          APP_BUILD_TIMESTAMP: ${{ github.run_id }}
           VITE_ENV_LABEL: ci
         run: pnpm build
 
       - name: Build web image
-        run: docker build ./web
+        run: |
+          docker build ./web \
+            --build-arg APP_BUILD_SHA="${GITHUB_SHA}" \
+            --build-arg APP_BUILD_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Capture build timestamp
+        if: github.event_name != 'pull_request'
+        id: build_meta
+        run: echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Buildx
         if: github.event_name != 'pull_request'
@@ -66,6 +76,9 @@ jobs:
         with:
           context: ./web
           push: true
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+            APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           tags: |
             ghcr.io/liberte-top/service-auth-web:main
             ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}

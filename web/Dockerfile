@@ -1,7 +1,11 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable
+ARG APP_BUILD_SHA=unknown
+ARG APP_BUILD_TIMESTAMP=unknown
 ARG VITE_ENV_LABEL=compose
+ENV APP_BUILD_SHA=$APP_BUILD_SHA
+ENV APP_BUILD_TIMESTAMP=$APP_BUILD_TIMESTAMP
 ENV VITE_ENV_LABEL=$VITE_ENV_LABEL
 
 COPY package.json pnpm-lock.yaml* ./
