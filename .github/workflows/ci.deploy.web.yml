@@ -69,3 +69,53 @@ jobs:
           tags: |
             ghcr.io/liberte-top/service-auth-web:main
             ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}
+
+      - name: Checkout kubernetes repo
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          repository: liberte-top/kubernetes
+          ref: main
+          token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
+          path: kubernetes
+
+      - name: Update auth-web image tag
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('kubernetes/manifests/service/auth/web/deployment.yaml')
+          replacement = 'ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}'
+          lines = []
+          for line in path.read_text().splitlines():
+            stripped = line.strip()
+            if stripped.startswith('image: ') and 'ghcr.io/liberte-top/service-auth-web:' in stripped:
+              indent = line[:len(line) - len(line.lstrip())]
+              line = f'{indent}image: {replacement}'
+            lines.append(line)
+          path.write_text('\n'.join(lines) + '\n')
+          PY
+
+      - name: Create kubernetes promotion PR
+        if: github.event_name != 'pull_request'
+        id: create_pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
+          path: kubernetes
+          branch: promote/auth-web-${{ github.sha }}
+          delete-branch: true
+          commit-message: "chore: promote auth-web image"
+          title: "chore: promote auth-web image"
+          body: |
+            Update `auth-web` to `ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}`.
+          labels: |
+            automated
+
+      - name: Enable PR auto-merge
+        if: github.event_name != 'pull_request' && steps.create_pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.KUBERNETES_REPO_TOKEN }}
+        run: gh pr merge --repo "liberte-top/kubernetes" --auto --squash "${{ steps.create_pr.outputs.pull-request-number }}"

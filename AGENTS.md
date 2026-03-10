@@ -81,8 +81,8 @@ service.auth/
 
 ## CI Strategy
 - Keep API and Web workflows decoupled in `.github/workflows/ci.deploy.api.yml` and `.github/workflows/ci.deploy.web.yml`.
-- API CI runs Rust tests, image build, and GHCR publish on `main`.
-- Web CI runs frontend build, image build, and GHCR publish on `main`.
+- API CI runs Rust tests, image build, GHCR publish, and opens an image-promotion PR to `kubernetes`.
+- Web CI runs frontend build, image build, GHCR publish, and opens an image-promotion PR to `kubernetes`.
 - Add dedicated E2E CI only when runtime and stability requirements are explicitly defined.
 
 ## Change Policy
