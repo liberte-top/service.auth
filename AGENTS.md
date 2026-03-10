@@ -90,8 +90,3 @@ service.auth/
 - Keep env ownership explicit: root `.env` and `e2e/.env` must stay independent.
 - Keep E2E layout explicit: `specs/` for tests, `lib/` for reusable helpers.
 - Keep `docker-compose.yml` aligned with `.env.example` keys.
-
-## Main Branch Guard
-- `.task/` is allowed during feature work but must not exist on `main`.
-- Promote useful task insights to permanent docs before merge.
-- `main` branch protection should require `forbid-task-dir-on-main` status check (`strict=true`).
