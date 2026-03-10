@@ -9,6 +9,7 @@ use crate::repo::{
     account_scopes::AccountScopesRepo,
     accounts::AccountsRepo,
     route_policies::{RoutePoliciesRepo, RoutePolicyRecord},
+    sessions::SessionsRepo,
 };
 
 use super::config::ConfigService;
@@ -28,6 +29,7 @@ pub struct AccessServiceImpl {
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
+    sessions_repo: Arc<dyn SessionsRepo>,
 }
 
 impl AccessServiceImpl {
@@ -36,27 +38,54 @@ impl AccessServiceImpl {
         accounts_repo: Arc<dyn AccountsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
         route_policies_repo: Arc<dyn RoutePoliciesRepo>,
+        sessions_repo: Arc<dyn SessionsRepo>,
     ) -> Self {
         Self {
             config,
             accounts_repo,
             account_scopes_repo,
             route_policies_repo,
+            sessions_repo,
         }
     }
 
-    fn is_authenticated(&self, headers: &HeaderMap) -> bool {
+    async fn session_subject(&self, headers: &HeaderMap) -> Option<String> {
         let cookie_name = self.config.forwardauth_session_cookie_name();
-        let cookie_value = self.config.forwardauth_session_cookie_value();
-        headers
+        let token = headers
             .get(header::COOKIE)
             .and_then(|raw| raw.to_str().ok())
-            .map(|cookie_header| {
+            .and_then(|cookie_header| {
                 cookie_header
                     .split(';')
-                    .any(|part| part.trim() == format!("{cookie_name}={cookie_value}"))
+                    .find_map(|part| {
+                        let trimmed = part.trim();
+                        let prefix = format!("{cookie_name}=");
+                        trimmed
+                            .strip_prefix(prefix.as_str())
+                            .map(ToOwned::to_owned)
+                    })
             })
-            .unwrap_or(false)
+            .filter(|value| !value.is_empty())?;
+
+        let session = self
+            .sessions_repo
+            .find_active_by_token_hash(&token)
+            .await
+            .ok()
+            .flatten()?;
+
+        let account = self
+            .accounts_repo
+            .find_by_username(DEMO_SUBJECT)
+            .await
+            .ok()
+            .flatten()?;
+
+        if account.id == session.account_id {
+            Some(DEMO_SUBJECT.to_owned())
+        } else {
+            None
+        }
     }
 
     fn unauthorized_response(&self, headers: &HeaderMap) -> Response {
@@ -97,9 +126,9 @@ impl AccessServiceImpl {
 #[async_trait]
 impl AccessService for AccessServiceImpl {
     async fn check(&self, headers: &HeaderMap) -> Response {
-        if !self.is_authenticated(headers) {
+        let Some(subject) = self.session_subject(headers).await else {
             return self.unauthorized_response(headers);
-        }
+        };
 
         let method = headers
             .get("x-forwarded-method")
@@ -111,7 +140,7 @@ impl AccessService for AccessServiceImpl {
             .unwrap_or("/");
 
         if let Err(status) = self
-            .authorize_request(host_from_headers(headers), method, path)
+            .authorize_request(&subject, host_from_headers(headers), method, path)
             .await
         {
             return status.into_response();
@@ -119,7 +148,11 @@ impl AccessService for AccessServiceImpl {
 
         let mut response = StatusCode::OK.into_response();
         let response_headers = response.headers_mut();
-        response_headers.insert("x-auth-subject", HeaderValue::from_static(DEMO_SUBJECT));
+        response_headers.insert(
+            "x-auth-subject",
+            HeaderValue::from_str(&subject)
+                .unwrap_or_else(|_| HeaderValue::from_static(DEMO_SUBJECT)),
+        );
         response_headers.insert("x-auth-type", HeaderValue::from_static(DEMO_AUTH_TYPE));
         response_headers.insert(
             "x-auth-scopes",
@@ -133,6 +166,7 @@ impl AccessService for AccessServiceImpl {
 impl AccessServiceImpl {
     async fn authorize_request(
         &self,
+        subject: &str,
         host: &str,
         method: &str,
         path: &str,
@@ -143,7 +177,7 @@ impl AccessServiceImpl {
             return Ok(());
         };
 
-        let granted = self.resolve_scopes().await;
+        let granted = self.resolve_scopes(subject).await;
         if policy
             .required_scopes
             .iter()
@@ -155,10 +189,10 @@ impl AccessServiceImpl {
         }
     }
 
-    async fn resolve_scopes(&self) -> Vec<String> {
+    async fn resolve_scopes(&self, subject: &str) -> Vec<String> {
         let Some(account) = self
             .accounts_repo
-            .find_by_username(DEMO_SUBJECT)
+            .find_by_username(subject)
             .await
             .ok()
             .flatten()

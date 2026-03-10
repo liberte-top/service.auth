@@ -9,6 +9,7 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
+use crate::repo::sessions::SessionsRepo;
 
 use super::config::ConfigService;
 
@@ -30,6 +31,7 @@ pub struct AuthContextServiceImpl {
     config: Arc<dyn ConfigService>,
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
+    sessions_repo: Arc<dyn SessionsRepo>,
 }
 
 impl AuthContextServiceImpl {
@@ -37,33 +39,61 @@ impl AuthContextServiceImpl {
         config: Arc<dyn ConfigService>,
         accounts_repo: Arc<dyn AccountsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
+        sessions_repo: Arc<dyn SessionsRepo>,
     ) -> Self {
         Self {
             config,
             accounts_repo,
             account_scopes_repo,
+            sessions_repo,
         }
     }
 
-    fn is_authenticated(&self, headers: &HeaderMap) -> bool {
+    async fn session_subject(&self, headers: &HeaderMap) -> Option<String> {
         let cookie_name = self.config.forwardauth_session_cookie_name();
-        let cookie_value = self.config.forwardauth_session_cookie_value();
-        headers
+        let token = headers
             .get(header::COOKIE)
             .and_then(|raw| raw.to_str().ok())
-            .map(|cookie_header| {
+            .and_then(|cookie_header| {
                 cookie_header
                     .split(';')
-                    .any(|part| part.trim() == format!("{cookie_name}={cookie_value}"))
+                    .find_map(|part| {
+                        let trimmed = part.trim();
+                        let prefix = format!("{cookie_name}=");
+                        trimmed
+                            .strip_prefix(prefix.as_str())
+                            .map(ToOwned::to_owned)
+                    })
             })
-            .unwrap_or(false)
+            .filter(|value| !value.is_empty())?;
+
+        let session = self
+            .sessions_repo
+            .find_active_by_token_hash(&token)
+            .await
+            .ok()
+            .flatten()?;
+
+        let account = self
+            .accounts_repo
+            .find_by_username("demo-user")
+            .await
+            .ok()
+            .flatten()?;
+
+        if account.id == session.account_id {
+            Some("demo-user".to_owned())
+        } else {
+            None
+        }
     }
 }
 
 #[async_trait]
 impl AuthContextService for AuthContextServiceImpl {
     async fn context(&self, headers: &HeaderMap) -> Response {
-        let authenticated = self.is_authenticated(headers);
+        let subject = self.session_subject(headers).await;
+        let authenticated = subject.is_some();
 
         if authenticated
             && headers
@@ -79,9 +109,10 @@ impl AuthContextService for AuthContextServiceImpl {
         }
 
         let mut response = if authenticated {
-            let scopes = self.resolve_scopes().await;
+            let subject = subject.unwrap_or_else(|| "demo-user".to_owned());
+            let scopes = self.resolve_scopes(&subject).await;
             Json(AuthContextResponse {
-                subject: Some("demo-user".to_owned()),
+                subject: Some(subject),
                 auth_type: Some("session".to_owned()),
                 scopes,
             })
@@ -98,10 +129,10 @@ impl AuthContextService for AuthContextServiceImpl {
 }
 
 impl AuthContextServiceImpl {
-    async fn resolve_scopes(&self) -> Vec<String> {
+    async fn resolve_scopes(&self, subject: &str) -> Vec<String> {
         let Some(account) = self
             .accounts_repo
-            .find_by_username("demo-user")
+            .find_by_username(subject)
             .await
             .ok()
             .flatten()

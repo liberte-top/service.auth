@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::{
     repo::account_scopes::AccountScopesRepo,
     repo::route_policies::RoutePoliciesRepo,
+    repo::sessions::SessionsRepo,
     repo::accounts::AccountsRepo,
     service::{
         access::AccessService, accounts::AccountsService, auth_context::AuthContextService,
@@ -42,6 +43,7 @@ pub struct AppState {
     accounts_repo: Arc<dyn AccountsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
+    sessions_repo: Arc<dyn SessionsRepo>,
     accounts: Arc<dyn AccountsService>,
     access: Arc<dyn AccessService>,
     auth_context: Arc<dyn AuthContextService>,
@@ -56,6 +58,7 @@ impl AppState {
             Arc::new(crate::repo::account_scopes::SeaOrmAccountScopesRepo::new(db.clone()));
         let route_policies_repo =
             Arc::new(crate::repo::route_policies::SeaOrmRoutePoliciesRepo::new(db.clone()));
+        let sessions_repo = Arc::new(crate::repo::sessions::SeaOrmSessionsRepo::new(db.clone()));
         let accounts = Arc::new(crate::service::accounts::AccountsServiceImpl::new(
             accounts_repo.clone(),
         ));
@@ -65,11 +68,13 @@ impl AppState {
             accounts_repo.clone(),
             account_scopes_repo.clone(),
             route_policies_repo.clone(),
+            sessions_repo.clone(),
         ));
         let auth_context = Arc::new(crate::service::auth_context::AuthContextServiceImpl::new(
             config.clone(),
             accounts_repo.clone(),
             account_scopes_repo.clone(),
+            sessions_repo.clone(),
         ));
 
         Arc::new(Self {
@@ -77,6 +82,7 @@ impl AppState {
             accounts_repo,
             account_scopes_repo,
             route_policies_repo,
+            sessions_repo,
             accounts,
             access,
             auth_context,

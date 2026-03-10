@@ -49,6 +49,25 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
         .await?;
     }
 
+    seed_demo_session(conn).await?;
+
+    Ok(())
+}
+
+async fn seed_demo_session(conn: &DatabaseConnection) -> Result<(), DbErr> {
+    conn.execute(Statement::from_string(
+        DbBackend::Postgres,
+        r#"
+INSERT INTO sessions (account_id, token_hash, expires_at)
+SELECT a.id, 'demo-smoke-session', now() + interval '365 days'
+FROM accounts a
+WHERE lower(a.username) = 'demo-user'
+ON CONFLICT DO NOTHING;
+"#
+        .to_string(),
+    ))
+    .await?;
+
     Ok(())
 }
 
