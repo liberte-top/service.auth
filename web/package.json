@@ -1,5 +1,5 @@
 {
-  "name": "auth-web",
+  "name": "service-auth-web",
   "version": "0.2.0",
   "private": true,
   "packageManager": "pnpm@10.28.0",
