@@ -12,6 +12,12 @@ use utoipa::ToSchema;
 
 use crate::state::AppState;
 
+const DEMO_SESSION_ETAG: &str = "W/\"demo-smoke-session-v1\"";
+const DEMO_SUBJECT: &str = "demo-user";
+const DEMO_AUTH_TYPE: &str = "session";
+const DEMO_EMAIL: &str = "demo@example.com";
+const DEMO_SCOPES_HEADER: &str = "notes:read profile:read";
+
 #[derive(Serialize, ToSchema)]
 pub struct AuthContextResponse {
     pub subject: Option<String>,
@@ -37,15 +43,25 @@ pub async fn forwardauth_session_check(
         .unwrap_or(false);
 
     if authenticated {
+        let method = headers
+            .get("x-forwarded-method")
+            .and_then(|raw| raw.to_str().ok())
+            .unwrap_or("GET");
+        let path = headers
+            .get("x-forwarded-uri")
+            .and_then(|raw| raw.to_str().ok())
+            .unwrap_or("/");
+
+        if let Err(status) = authorize_request(method, path) {
+            return status.into_response();
+        }
+
         let mut response = StatusCode::OK.into_response();
         let response_headers = response.headers_mut();
-        response_headers.insert("x-auth-subject", HeaderValue::from_static("demo-user"));
-        response_headers.insert("x-auth-type", HeaderValue::from_static("session"));
-        response_headers.insert(
-            "x-auth-scopes",
-            HeaderValue::from_static("notes:read profile:read"),
-        );
-        response_headers.insert("x-auth-email", HeaderValue::from_static("demo@example.com"));
+        response_headers.insert("x-auth-subject", HeaderValue::from_static(DEMO_SUBJECT));
+        response_headers.insert("x-auth-type", HeaderValue::from_static(DEMO_AUTH_TYPE));
+        response_headers.insert("x-auth-scopes", HeaderValue::from_static(DEMO_SCOPES_HEADER));
+        response_headers.insert("x-auth-email", HeaderValue::from_static(DEMO_EMAIL));
         return response;
     }
 
@@ -109,20 +125,20 @@ pub async fn auth_context(
         && headers
             .get(header::IF_NONE_MATCH)
             .and_then(|raw| raw.to_str().ok())
-            .is_some_and(|value| value == "W/\"demo-smoke-session-v1\"")
+            .is_some_and(|value| value == DEMO_SESSION_ETAG)
     {
         let mut response = StatusCode::NOT_MODIFIED.into_response();
         response.headers_mut().insert(
             header::ETAG,
-            HeaderValue::from_static("W/\"demo-smoke-session-v1\""),
+            HeaderValue::from_static(DEMO_SESSION_ETAG),
         );
         return response;
     }
 
     let mut response = if authenticated {
         Json(AuthContextResponse {
-            subject: Some("demo-user".to_owned()),
-            auth_type: Some("session".to_owned()),
+            subject: Some(DEMO_SUBJECT.to_owned()),
+            auth_type: Some(DEMO_AUTH_TYPE.to_owned()),
             scopes: vec!["notes:read".to_owned(), "profile:read".to_owned()],
         })
         .into_response()
@@ -132,9 +148,18 @@ pub async fn auth_context(
 
     response.headers_mut().insert(
         header::ETAG,
-        HeaderValue::from_static("W/\"demo-smoke-session-v1\""),
+        HeaderValue::from_static(DEMO_SESSION_ETAG),
     );
     response
+}
+
+fn authorize_request(method: &str, path: &str) -> Result<(), StatusCode> {
+    match (method, path) {
+        ("GET", p) if p.starts_with("/api/v1/viewer") => Ok(()),
+        ("GET", p) if p.starts_with("/api/v1/notes") => Ok(()),
+        ("POST", p) if p.starts_with("/api/v1/notes") => Err(StatusCode::FORBIDDEN),
+        _ => Ok(()),
+    }
 }
 
 pub fn routes(state: Arc<AppState>) -> Router {
