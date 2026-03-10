@@ -38,7 +38,15 @@ jobs:
         run: cargo test --locked
 
       - name: Build API image
-        run: docker build ./api
+        run: |
+          docker build ./api \
+            --build-arg APP_BUILD_SHA="${GITHUB_SHA}" \
+            --build-arg APP_BUILD_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Capture build timestamp
+        if: github.event_name != 'pull_request'
+        id: build_meta
+        run: echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Buildx
         if: github.event_name != 'pull_request'
@@ -58,6 +66,9 @@ jobs:
         with:
           context: ./api
           push: true
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+            APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           tags: |
             ghcr.io/liberte-top/service-auth-api:main
             ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}
