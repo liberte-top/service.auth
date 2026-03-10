@@ -4,9 +4,10 @@
 - `AGENTS.md`: service.auth collaboration and execution conventions.
 
 ## Current Flow
-- This repository is in active refactor mode on `feat/init-service-auth-refactor`.
+- This repository is the active product layer for the liberte.top experiment.
 - Runtime stack is `docker-compose` with `db + api + web`.
 - E2E verification is Playwright-based under `e2e/`.
+- Web and API now run in same-origin deployment mode: the web nginx proxies `/api/` to the API service.
 
 ## Single Source of Truth
 - Container runtime parameters live in root `.env` (see `.env.example`).
@@ -35,7 +36,6 @@ service.auth/
 │   ├── lib/                  # Shared helpers/utilities for specs
 │   ├── .env(.example)        # E2E-only runtime params
 │   └── package.json
-├── scripts/                  # Local helper scripts (currently empty)
 ├── docker-compose.yml        # Local stack orchestration
 ├── .env(.example)            # Compose runtime parameters
 └── AGENTS.md                 # Collaboration and execution conventions
@@ -48,7 +48,6 @@ service.auth/
   - `DATABASE_URL`
   - `API_PORT`
   - `WEB_PUBLIC_PORT`
-  - `WEB_VITE_AUTH_API_BASE_URL`
   - `WEB_VITE_ENV_LABEL`
 - E2E `.env` (`e2e/.env.example`):
   - `E2E_BASE_URL`
@@ -82,8 +81,8 @@ service.auth/
 
 ## CI Strategy
 - Keep API and Web workflows decoupled in `.github/workflows/ci.deploy.api.yml` and `.github/workflows/ci.deploy.web.yml`.
-- API CI should at least run Rust tests and image build.
-- Web CI should at least run frontend build and image build.
+- API CI runs Rust tests, image build, and GHCR publish on `main`.
+- Web CI runs frontend build, image build, and GHCR publish on `main`.
 - Add dedicated E2E CI only when runtime and stability requirements are explicitly defined.
 
 ## Change Policy
