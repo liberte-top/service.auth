@@ -14,6 +14,7 @@ Active product layer for the liberte.top experiment.
 - `web` is deployed as the public same-origin entrypoint.
 - `web` nginx proxies `/api/` to `auth-api`; the frontend does not carry an environment-specific API base URL.
 - CI publishes `ghcr.io/liberte-top/service-auth-api` and `ghcr.io/liberte-top/service-auth-web`.
+- `api` also exposes `/api/v1/context` and `/internal/auth/session/check` for gateway-driven auth integration.
 
 ## Boundaries
 
