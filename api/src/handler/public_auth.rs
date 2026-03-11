@@ -1,6 +1,7 @@
 use axum::{
     extract::{Query, State},
     http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -35,6 +36,14 @@ pub struct VerifyQuery {
 #[derive(Deserialize, ToSchema)]
 pub struct CompleteLoginRequest {
     pub token: String,
+}
+
+fn session_cookie_value(state: &AppState, session_token: &str) -> String {
+    format!(
+        "{}={}; Path=/; HttpOnly; Secure; SameSite=Lax",
+        state.config().forwardauth_session_cookie_name(),
+        session_token
+    )
 }
 
 #[utoipa::path(
@@ -161,17 +170,46 @@ pub async fn complete_email_login(
     };
 
     let mut headers = HeaderMap::new();
-    let cookie = format!(
-        "{}={}; Path=/; HttpOnly; Secure; SameSite=Lax",
-        state.config().forwardauth_session_cookie_name(),
-        result.session_token
-    );
     headers.insert(
         header::SET_COOKIE,
-        HeaderValue::from_str(&cookie).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+        HeaderValue::from_str(&session_cookie_value(&state, &result.session_token))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
     );
 
     Ok((headers, Json(result)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/auth/login/email/complete",
+    params(("token" = String, Query, description = "Login token")),
+    responses(
+        (status = 303, description = "Login completed and redirected"),
+        (status = 404, description = "Token not found or expired")
+    ),
+    tag = "auth"
+)]
+pub async fn complete_email_login_link(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<VerifyQuery>,
+) -> Result<Response, StatusCode> {
+    let Some(result) = state
+        .email_auth()
+        .complete_login(crate::service::email_auth::CompleteEmailLoginInput { token: query.token })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    let mut response = Redirect::to(state.config().forwardauth_login_url()).into_response();
+    response.headers_mut().insert(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&session_cookie_value(&state, &result.session_token))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    );
+
+    Ok(response)
 }
 
 pub fn routes(state: Arc<AppState>) -> Router {
@@ -184,7 +222,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/v1/auth/login/email", post(request_email_login))
         .route(
             "/api/v1/auth/login/email/complete",
-            post(complete_email_login),
+            get(complete_email_login_link).post(complete_email_login),
         )
         .with_state(state)
 }

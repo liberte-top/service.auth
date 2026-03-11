@@ -89,3 +89,5 @@ service.auth/
 - Keep env ownership explicit: root `.env` and `e2e/.env` must stay independent.
 - Keep E2E layout explicit: `specs/` for tests, `lib/` for reusable helpers.
 - Keep `docker-compose.yml` aligned with `.env.example` keys.
+- Treat runtime data as disposable during the current experiment: it is acceptable to reset or clear environments to unblock end-to-end auth testing.
+- Treat the delivery path as non-disposable: even for urgent fixes on experimental environments, code changes must still ship through the normal commit + CI + promotion flow instead of ad hoc manual image builds or direct cluster-only hotfixes.
