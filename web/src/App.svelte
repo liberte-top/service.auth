@@ -47,14 +47,13 @@
   }
 
   async function refreshAuthContext() {
-    const response = await apiClient.get("/api/v1/context", {
-      validateStatus: (status: number) => status === 200 || status === 401,
-    });
-    authContext = response.status === 401
-      ? "signed out"
-      : typeof response.data === "string"
-        ? response.data
-        : JSON.stringify(response.data);
+    const response = await apiClient.get("/api/v1/context");
+    const data = response.data;
+    authContext = typeof data === "string"
+      ? data
+      : data?.authenticated === false
+        ? "signed out"
+        : JSON.stringify(data);
   }
 
   async function runAuthAction(label: string, path: string, payload: Record<string, unknown>) {

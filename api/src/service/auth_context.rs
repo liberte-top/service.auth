@@ -18,6 +18,7 @@ const DEMO_SESSION_ETAG: &str = "W/\"demo-smoke-session-v1\"";
 
 #[derive(Serialize, ToSchema)]
 pub struct AuthContextResponse {
+    pub authenticated: bool,
     pub subject: Option<String>,
     pub auth_type: Option<String>,
     pub scopes: Vec<String>,
@@ -118,6 +119,7 @@ impl AuthContextService for AuthContextServiceImpl {
             let (account_id, subject) = identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
             let scopes = self.resolve_scopes(account_id).await;
             Json(AuthContextResponse {
+                authenticated: true,
                 subject: Some(subject),
                 auth_type: Some(if api_key_identity.is_some() {
                     "api_key".to_owned()
@@ -128,7 +130,13 @@ impl AuthContextService for AuthContextServiceImpl {
             })
             .into_response()
         } else {
-            StatusCode::UNAUTHORIZED.into_response()
+            Json(AuthContextResponse {
+                authenticated: false,
+                subject: None,
+                auth_type: None,
+                scopes: Vec::new(),
+            })
+            .into_response()
         };
 
         response

@@ -51,8 +51,7 @@ fn session_cookie_value(state: &AppState, session_token: &str) -> String {
     path = "/api/v1/auth/context",
     responses(
         (status = 200, description = "Current auth context", body = AuthContextResponse),
-        (status = 304, description = "Auth context not modified"),
-        (status = 401, description = "Unauthenticated")
+        (status = 304, description = "Auth context not modified")
     ),
     tag = "auth"
 )]
