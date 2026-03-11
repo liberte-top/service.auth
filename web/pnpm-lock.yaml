@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      axios:
-        specifier: 1.7.9
-        version: 1.7.9
+      '@liberte-top/shared':
+        specifier: file:../../packages/npm/shared
+        version: file:../../packages/npm/shared
       svelte:
         specifier: 5.38.0
         version: 5.38.0
@@ -348,6 +348,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@liberte-top/shared@file:../../packages/npm/shared':
+    resolution: {directory: ../../packages/npm/shared, type: directory}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1457,6 +1460,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@liberte-top/shared@file:../../packages/npm/shared':
+    dependencies:
+      axios: 1.7.9
+    transitivePeerDependencies:
+      - debug
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

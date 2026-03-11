@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createAccount, getAccount, getHealth, type AccountPayload, type AccountResponse } from "../openapi/client";
+  import { apiClient } from "../openapi/http";
 
   const envLabel = import.meta.env.VITE_ENV_LABEL ?? "local";
 
@@ -35,30 +36,25 @@
   });
 
   async function postJson(path: string, payload: Record<string, unknown>) {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-      credentials: "include",
+    const response = await apiClient.post(path, payload, {
+      validateStatus: () => true,
     });
-
-    const text = await response.text();
     return {
-      ok: response.ok,
+      ok: response.status >= 200 && response.status < 300,
       status: response.status,
-      text,
+      text: typeof response.data === "string" ? response.data : JSON.stringify(response.data),
     };
   }
 
   async function refreshAuthContext() {
-    const response = await fetch("/api/v1/context", {
-      credentials: "include",
+    const response = await apiClient.get("/api/v1/context", {
+      validateStatus: (status: number) => status === 200 || status === 401,
     });
-    const text = await response.text();
-
-    authContext = text || (response.status === 401 ? "signed out" : "");
+    authContext = response.status === 401
+      ? "signed out"
+      : typeof response.data === "string"
+        ? response.data
+        : JSON.stringify(response.data);
   }
 
   async function runAuthAction(label: string, path: string, payload: Record<string, unknown>) {

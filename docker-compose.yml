@@ -31,7 +31,8 @@ services:
 
   web:
     build:
-      context: ./web
+      context: ..
+      dockerfile: service.auth/web/Dockerfile
       args:
         VITE_ENV_LABEL: ${WEB_VITE_ENV_LABEL:-compose}
     ports:

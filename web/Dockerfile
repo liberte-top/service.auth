@@ -1,5 +1,5 @@
 FROM node:20-bookworm-slim AS builder
-WORKDIR /app
+WORKDIR /app/service.auth/web
 RUN corepack enable
 ARG APP_BUILD_SHA=unknown
 ARG APP_BUILD_TIMESTAMP=unknown
@@ -8,15 +8,16 @@ ENV APP_BUILD_SHA=$APP_BUILD_SHA
 ENV APP_BUILD_TIMESTAMP=$APP_BUILD_TIMESTAMP
 ENV VITE_ENV_LABEL=$VITE_ENV_LABEL
 
-COPY package.json pnpm-lock.yaml* ./
+COPY service.auth/web/package.json service.auth/web/pnpm-lock.yaml* ./
+COPY packages /app/packages
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --no-frozen-lockfile
 
-COPY . ./
+COPY service.auth/web .
 RUN pnpm build
 
 FROM nginx:1.27-alpine AS runtime
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY service.auth/web/docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/service.auth/web/dist /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

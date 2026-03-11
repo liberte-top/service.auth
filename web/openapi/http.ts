@@ -1,8 +1,16 @@
-import axios, { type AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig } from "axios";
+import { createLibertEAuthAllowRequest, createUnauthorizedRedirectHandler } from "@liberte-top/shared/auth";
+import { createOpenApiClient } from "@liberte-top/shared/openapi";
 
-const AXIOS = axios.create();
+const { instance: apiClient, request } = createOpenApiClient({
+  onUnauthorized: createUnauthorizedRedirectHandler({
+    loginUrl: "/",
+    allowRequest: createLibertEAuthAllowRequest,
+  }),
+});
+
+export { apiClient };
 
 export async function customInstance<T>(config: AxiosRequestConfig): Promise<T> {
-  const response = await AXIOS.request<T>(config);
-  return response.data;
+  return request<T>(config);
 }
