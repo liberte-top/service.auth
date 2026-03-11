@@ -77,16 +77,6 @@ jobs:
           token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
           path: kubernetes
 
-      - name: Setup Helm
-        if: github.event_name != 'pull_request'
-        run: |
-          set -euo pipefail
-          if command -v helm >/dev/null 2>&1; then
-            helm version
-            exit 0
-          fi
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
       - name: Update auth-api image tag
         if: github.event_name != 'pull_request'
         run: |
@@ -103,8 +93,6 @@ jobs:
             lines.append(line)
           path.write_text('\n'.join(lines) + '\n')
           PY
-          helm template service-auth kubernetes/charts/service/auth --namespace service > kubernetes/manifests/service/auth/rendered.yaml
-
       - name: Create kubernetes promotion PR
         if: github.event_name != 'pull_request'
         id: create_pr
