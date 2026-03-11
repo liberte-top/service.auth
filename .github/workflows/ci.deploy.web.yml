@@ -100,6 +100,16 @@ jobs:
           token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
           path: kubernetes
 
+      - name: Setup Helm
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          if command -v helm >/dev/null 2>&1; then
+            helm version
+            exit 0
+          fi
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
       - name: Update auth-web image tag
         if: github.event_name != 'pull_request'
         run: |
@@ -107,17 +117,16 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path('kubernetes/manifests/service/auth/web/deployment.yaml')
-          replacement = 'ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}'
+          path = Path('kubernetes/charts/service/auth/values.yaml')
+          replacement = '    tag: sha-${{ github.sha }} # auth-web-image'
           lines = []
           for line in path.read_text().splitlines():
-            stripped = line.strip()
-            if stripped.startswith('image: ') and 'ghcr.io/liberte-top/service-auth-web:' in stripped:
-              indent = line[:len(line) - len(line.lstrip())]
-              line = f'{indent}image: {replacement}'
+            if line.strip().endswith('# auth-web-image'):
+              line = replacement
             lines.append(line)
           path.write_text('\n'.join(lines) + '\n')
           PY
+          helm template service-auth kubernetes/charts/service/auth --namespace service > kubernetes/manifests/service/auth/rendered.yaml
 
       - name: Create kubernetes promotion PR
         if: github.event_name != 'pull_request'
