@@ -114,4 +114,10 @@ jobs:
         if: github.event_name != 'pull_request' && steps.create_pr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ secrets.KUBERNETES_REPO_TOKEN }}
-        run: gh pr merge --repo "liberte-top/kubernetes" --auto --squash "${{ steps.create_pr.outputs.pull-request-number }}"
+        run: |
+          set -euo pipefail
+          pr_number="${{ steps.create_pr.outputs.pull-request-number }}"
+          gh pr merge --repo "liberte-top/kubernetes" --squash "$pr_number" || {
+            gh pr update-branch --repo "liberte-top/kubernetes" "$pr_number" --rebase
+            gh pr merge --repo "liberte-top/kubernetes" --squash "$pr_number"
+          }
