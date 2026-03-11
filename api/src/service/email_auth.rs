@@ -268,7 +268,7 @@ impl EmailAuthService for EmailAuthServiceImpl {
 
         Ok(Some(EmailLoginResult {
             authenticated: true,
-            subject: "demo-user".to_owned(),
+            subject: email.email_normalized,
             auth_type: "session",
             session_token: raw_session_token,
         }))
