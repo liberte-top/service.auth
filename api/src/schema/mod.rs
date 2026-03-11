@@ -5,6 +5,7 @@ mod api_keys;
 mod account_scopes;
 mod account_emails;
 mod accounts;
+mod email_tokens;
 mod route_policies;
 mod route_policy_scopes;
 mod sessions;
@@ -23,6 +24,7 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     api_keys::apply(&manager, conn).await?;
     account_scopes::apply(&manager, conn).await?;
     account_emails::apply(&manager, conn).await?;
+    email_tokens::apply(&manager, conn).await?;
     route_policies::apply(&manager, conn).await?;
     route_policy_scopes::apply(&manager, conn).await?;
     apply_audit_invariants(conn).await?;

@@ -7,6 +7,11 @@ pub trait ConfigService: Send + Sync {
     fn forwardauth_session_cookie_name(&self) -> &str;
     fn forwardauth_session_cookie_value(&self) -> &str;
     fn forwardauth_login_url(&self) -> &str;
+    fn resend_api_key(&self) -> Option<&str>;
+    fn email_from(&self) -> &str;
+    fn email_verify_base_url(&self) -> &str;
+    fn email_login_base_url(&self) -> &str;
+    fn email_token_ttl_secs(&self) -> i64;
 }
 
 pub struct ConfigServiceImpl {
@@ -31,12 +36,38 @@ impl ConfigServiceImpl {
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "https://auth.liberte.top/".to_owned());
+        let resend_api_key = env::var("RESEND_API_KEY")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
+        let email_from = env::var("EMAIL_FROM")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "Auth <auth@mail.liberte.top>".to_owned());
+        let email_verify_base_url = env::var("EMAIL_VERIFY_BASE_URL")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "https://auth.liberte.top/api/v1/auth/verify/email".to_owned());
+        let email_login_base_url = env::var("EMAIL_LOGIN_BASE_URL")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| {
+                "https://auth.liberte.top/api/v1/auth/login/email/complete".to_owned()
+            });
+        let email_token_ttl_secs = env::var("EMAIL_TOKEN_TTL_SECS")
+            .ok()
+            .and_then(|value| value.trim().parse::<i64>().ok())
+            .unwrap_or(900);
         Self {
             config: Arc::new(Config {
                 port,
                 forwardauth_session_cookie_name,
                 forwardauth_session_cookie_value,
                 forwardauth_login_url,
+                resend_api_key,
+                email_from,
+                email_verify_base_url,
+                email_login_base_url,
+                email_token_ttl_secs,
             }),
         }
     }
@@ -57,5 +88,25 @@ impl ConfigService for ConfigServiceImpl {
 
     fn forwardauth_login_url(&self) -> &str {
         &self.config.forwardauth_login_url
+    }
+
+    fn resend_api_key(&self) -> Option<&str> {
+        self.config.resend_api_key.as_deref()
+    }
+
+    fn email_from(&self) -> &str {
+        &self.config.email_from
+    }
+
+    fn email_verify_base_url(&self) -> &str {
+        &self.config.email_verify_base_url
+    }
+
+    fn email_login_base_url(&self) -> &str {
+        &self.config.email_login_base_url
+    }
+
+    fn email_token_ttl_secs(&self) -> i64 {
+        self.config.email_token_ttl_secs
     }
 }
