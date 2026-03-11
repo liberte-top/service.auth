@@ -8,7 +8,8 @@ use uuid::Uuid;
 use crate::{
     entities::{account_emails, email_tokens, sessions},
     repo::{
-        account_emails::AccountEmailsRepo, email_tokens::EmailTokensRepo, sessions::SessionsRepo,
+        account_emails::AccountEmailsRepo, accounts::AccountsRepo, email_tokens::EmailTokensRepo,
+        sessions::SessionsRepo,
     },
 };
 
@@ -64,6 +65,7 @@ pub trait EmailAuthService: Send + Sync {
 
 pub struct EmailAuthServiceImpl {
     accounts: Arc<dyn AccountsService>,
+    accounts_repo: Arc<dyn AccountsRepo>,
     account_emails_repo: Arc<dyn AccountEmailsRepo>,
     email_tokens_repo: Arc<dyn EmailTokensRepo>,
     sessions_repo: Arc<dyn SessionsRepo>,
@@ -74,6 +76,7 @@ pub struct EmailAuthServiceImpl {
 impl EmailAuthServiceImpl {
     pub fn new(
         accounts: Arc<dyn AccountsService>,
+        accounts_repo: Arc<dyn AccountsRepo>,
         account_emails_repo: Arc<dyn AccountEmailsRepo>,
         email_tokens_repo: Arc<dyn EmailTokensRepo>,
         sessions_repo: Arc<dyn SessionsRepo>,
@@ -82,6 +85,7 @@ impl EmailAuthServiceImpl {
     ) -> Self {
         Self {
             accounts,
+            accounts_repo,
             account_emails_repo,
             email_tokens_repo,
             sessions_repo,
@@ -266,9 +270,16 @@ impl EmailAuthService for EmailAuthServiceImpl {
         };
         self.sessions_repo.insert(session).await?;
 
+        let subject = self
+            .accounts_repo
+            .find_by_id(email.account_id)
+            .await?
+            .map(|account| account.uid.to_string())
+            .unwrap_or_else(|| email.account_id.to_string());
+
         Ok(Some(EmailLoginResult {
             authenticated: true,
-            subject: email.email_normalized,
+            subject,
             auth_type: "session",
             session_token: raw_session_token,
         }))

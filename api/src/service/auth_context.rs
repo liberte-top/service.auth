@@ -53,7 +53,7 @@ impl AuthContextServiceImpl {
         }
     }
 
-    async fn session_subject(&self, headers: &HeaderMap) -> Option<String> {
+    async fn session_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {
         let cookie_name = self.config.forwardauth_session_cookie_name();
         let token = headers
             .get(header::COOKIE)
@@ -85,26 +85,21 @@ impl AuthContextServiceImpl {
             .ok()
             .flatten()?;
 
-        Some(
-            account
-                .username
-                .or(account.email)
-                .unwrap_or_else(|| account.uid.to_string()),
-        )
+        Some((account.id, account.uid.to_string()))
     }
 }
 
 #[async_trait]
 impl AuthContextService for AuthContextServiceImpl {
     async fn context(&self, headers: &HeaderMap) -> Response {
-        let session_subject = self.session_subject(headers).await;
-        let api_key_subject = if session_subject.is_none() {
-            self.api_key_subject(headers).await
+        let session_identity = self.session_identity(headers).await;
+        let api_key_identity = if session_identity.is_none() {
+            self.api_key_identity(headers).await
         } else {
             None
         };
-        let subject = session_subject.or(api_key_subject.clone());
-        let authenticated = subject.is_some();
+        let identity = session_identity.or(api_key_identity.clone());
+        let authenticated = identity.is_some();
 
         if authenticated
             && headers
@@ -120,11 +115,11 @@ impl AuthContextService for AuthContextServiceImpl {
         }
 
         let mut response = if authenticated {
-            let subject = subject.unwrap_or_else(|| "demo-user".to_owned());
-            let scopes = self.resolve_scopes(&subject).await;
+            let (account_id, subject) = identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
+            let scopes = self.resolve_scopes(account_id).await;
             Json(AuthContextResponse {
                 subject: Some(subject),
-                auth_type: Some(if api_key_subject.is_some() {
+                auth_type: Some(if api_key_identity.is_some() {
                     "api_key".to_owned()
                 } else {
                     "session".to_owned()
@@ -144,25 +139,15 @@ impl AuthContextService for AuthContextServiceImpl {
 }
 
 impl AuthContextServiceImpl {
-    async fn resolve_scopes(&self, subject: &str) -> Vec<String> {
-        let Some(account) = self
-            .accounts_repo
-            .find_by_username(subject)
-            .await
-            .ok()
-            .flatten()
-        else {
-            return vec!["notes:read".to_owned(), "profile:read".to_owned()];
-        };
-
+    async fn resolve_scopes(&self, account_id: i64) -> Vec<String> {
         self.account_scopes_repo
-            .list_by_account_id(account.id)
+            .list_by_account_id(account_id)
             .await
             .map(|items| items.into_iter().map(|item| item.scope_name).collect())
             .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
     }
 
-    async fn api_key_subject(&self, headers: &HeaderMap) -> Option<String> {
+    async fn api_key_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {
         let raw = headers
             .get(header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
@@ -177,11 +162,12 @@ impl AuthContextServiceImpl {
             .ok()
             .flatten()?;
 
-        if key.key_prefix == "demo" {
-            Some("demo-user".to_owned())
-        } else {
-            None
+        if key.key_prefix != "demo" {
+            return None;
         }
+
+        let account = self.accounts_repo.find_by_id(key.account_id).await.ok().flatten()?;
+        Some((account.id, account.uid.to_string()))
     }
 
 }

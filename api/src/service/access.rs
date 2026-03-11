@@ -15,7 +15,6 @@ use crate::repo::{
 
 use super::config::ConfigService;
 
-const DEMO_SUBJECT: &str = "demo-user";
 const DEMO_AUTH_TYPE: &str = "session";
 const DEMO_EMAIL: &str = "demo@example.com";
 const DEMO_API_KEY_PREFIX: &str = "demo";
@@ -53,7 +52,7 @@ impl AccessServiceImpl {
         }
     }
 
-    async fn session_subject(&self, headers: &HeaderMap) -> Option<String> {
+    async fn session_identity(&self, headers: &HeaderMap) -> Option<ResolvedIdentity> {
         let cookie_name = self.config.forwardauth_session_cookie_name();
         let token = headers
             .get(header::COOKIE)
@@ -85,12 +84,14 @@ impl AccessServiceImpl {
             .ok()
             .flatten()?;
 
-        Some(
-            account
-                .username
-                .or(account.email)
-                .unwrap_or_else(|| account.uid.to_string()),
-        )
+        let scopes = self.resolve_scopes_by_account_id(account.id).await;
+        Some(ResolvedIdentity {
+            subject: account.uid.to_string(),
+            auth_type: DEMO_AUTH_TYPE.to_owned(),
+            scopes,
+            email: account.email.unwrap_or_else(|| DEMO_EMAIL.to_owned()),
+            account_id: account.id,
+        })
     }
 
     fn unauthorized_response(&self, headers: &HeaderMap) -> Response {
@@ -145,7 +146,7 @@ impl AccessService for AccessServiceImpl {
             .unwrap_or("/");
 
         if let Err(status) = self
-            .authorize_request(&identity.subject, host_from_headers(headers), method, path)
+            .authorize_request(identity.account_id, host_from_headers(headers), method, path)
             .await
         {
             return status.into_response();
@@ -156,7 +157,7 @@ impl AccessService for AccessServiceImpl {
         response_headers.insert(
             "x-auth-subject",
             HeaderValue::from_str(&identity.subject)
-                .unwrap_or_else(|_| HeaderValue::from_static(DEMO_SUBJECT)),
+                .unwrap_or_else(|_| HeaderValue::from_static("00000000-0000-0000-0000-000000000000")),
         );
         response_headers.insert(
             "x-auth-type",
@@ -168,7 +169,11 @@ impl AccessService for AccessServiceImpl {
             HeaderValue::from_str(&identity.scopes.join(" "))
                 .unwrap_or_else(|_| HeaderValue::from_static("notes:read profile:read")),
         );
-        response_headers.insert("x-auth-email", HeaderValue::from_static(DEMO_EMAIL));
+        response_headers.insert(
+            "x-auth-email",
+            HeaderValue::from_str(&identity.email)
+                .unwrap_or_else(|_| HeaderValue::from_static(DEMO_EMAIL)),
+        );
         response
     }
 }
@@ -177,26 +182,18 @@ struct ResolvedIdentity {
     subject: String,
     auth_type: String,
     scopes: Vec<String>,
+    email: String,
+    account_id: i64,
 }
 
 impl AccessServiceImpl {
     async fn identity(&self, headers: &HeaderMap) -> Option<ResolvedIdentity> {
-        if let Some(subject) = self.session_subject(headers).await {
-            let scopes = self.resolve_scopes(&subject).await;
-            return Some(ResolvedIdentity {
-                subject,
-                auth_type: DEMO_AUTH_TYPE.to_owned(),
-                scopes,
-            });
+        if let Some(identity) = self.session_identity(headers).await {
+            return Some(identity);
         }
 
-        if let Some(subject) = self.api_key_subject(headers).await {
-            let scopes = self.resolve_scopes(&subject).await;
-            return Some(ResolvedIdentity {
-                subject,
-                auth_type: "api_key".to_owned(),
-                scopes,
-            });
+        if let Some(identity) = self.api_key_identity(headers).await {
+            return Some(identity);
         }
 
         None
@@ -204,7 +201,7 @@ impl AccessServiceImpl {
 
     async fn authorize_request(
         &self,
-        subject: &str,
+        account_id: i64,
         host: &str,
         method: &str,
         path: &str,
@@ -215,7 +212,7 @@ impl AccessServiceImpl {
             return Ok(());
         };
 
-        let granted = self.resolve_scopes(subject).await;
+        let granted = self.resolve_scopes_by_account_id(account_id).await;
         if policy
             .required_scopes
             .iter()
@@ -227,25 +224,15 @@ impl AccessServiceImpl {
         }
     }
 
-    async fn resolve_scopes(&self, subject: &str) -> Vec<String> {
-        let Some(account) = self
-            .accounts_repo
-            .find_by_username(subject)
-            .await
-            .ok()
-            .flatten()
-        else {
-            return vec!["notes:read".to_owned(), "profile:read".to_owned()];
-        };
-
+    async fn resolve_scopes_by_account_id(&self, account_id: i64) -> Vec<String> {
         self.account_scopes_repo
-            .list_by_account_id(account.id)
+            .list_by_account_id(account_id)
             .await
             .map(|items| items.into_iter().map(|item| item.scope_name).collect())
             .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
     }
 
-    async fn api_key_subject(&self, headers: &HeaderMap) -> Option<String> {
+    async fn api_key_identity(&self, headers: &HeaderMap) -> Option<ResolvedIdentity> {
         let raw = headers
             .get(header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
@@ -260,11 +247,20 @@ impl AccessServiceImpl {
             .ok()
             .flatten()?;
 
-        if key.key_prefix == DEMO_API_KEY_PREFIX {
-            Some(DEMO_SUBJECT.to_owned())
-        } else {
-            None
+        if key.key_prefix != DEMO_API_KEY_PREFIX {
+            return None;
         }
+
+        let account = self.accounts_repo.find_by_id(key.account_id).await.ok().flatten()?;
+        let scopes = self.resolve_scopes_by_account_id(account.id).await;
+
+        Some(ResolvedIdentity {
+            subject: account.uid.to_string(),
+            auth_type: "api_key".to_owned(),
+            scopes,
+            email: account.email.unwrap_or_else(|| DEMO_EMAIL.to_owned()),
+            account_id: account.id,
+        })
     }
 }
 

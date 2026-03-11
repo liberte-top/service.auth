@@ -94,6 +94,7 @@ impl AppState {
         ));
         let email_auth = Arc::new(crate::service::email_auth::EmailAuthServiceImpl::new(
             accounts.clone(),
+            accounts_repo.clone(),
             account_emails_repo.clone(),
             email_tokens_repo.clone(),
             sessions_repo.clone(),
