@@ -2,6 +2,10 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { resolve } from "node:path";
 
+const buildVersion = process.env.npm_package_version ?? "0.0.0";
+const buildSha = process.env.APP_BUILD_SHA ?? "unknown";
+const buildTimestamp = process.env.APP_BUILD_TIMESTAMP ?? "unknown";
+
 export default defineConfig({
   build: {
     rollupOptions: {
@@ -14,6 +18,20 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: "inject-build-meta",
+      transformIndexHtml(html) {
+        return html.replace(
+          "</head>",
+          [
+            `    <meta name="liberte:build-version" content="${buildVersion}" />`,
+            `    <meta name="liberte:build-sha" content="${buildSha}" />`,
+            `    <meta name="liberte:build-timestamp" content="${buildTimestamp}" />`,
+            "  </head>",
+          ].join("\n")
+        );
+      },
+    },
     svelte({
       compilerOptions: {
         compatibility: {
