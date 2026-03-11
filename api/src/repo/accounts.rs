@@ -8,6 +8,7 @@ use crate::{entities::accounts, state::DatabaseClient};
 pub trait AccountsRepo: Send + Sync {
     async fn insert(&self, model: accounts::ActiveModel)
         -> Result<accounts::Model, sea_orm::DbErr>;
+    async fn find_by_id(&self, id: i64) -> Result<Option<accounts::Model>, sea_orm::DbErr>;
     async fn find_by_uid(&self, uid: Uuid) -> Result<Option<accounts::Model>, sea_orm::DbErr>;
     async fn find_by_username(
         &self,
@@ -39,6 +40,13 @@ impl AccountsRepo for SeaOrmAccountsRepo {
     async fn find_by_uid(&self, uid: Uuid) -> Result<Option<accounts::Model>, sea_orm::DbErr> {
         accounts::Entity::find()
             .filter(accounts::Column::Uid.eq(uid))
+            .filter(accounts::Column::DeletedAt.is_null())
+            .one(self.db.conn())
+            .await
+    }
+
+    async fn find_by_id(&self, id: i64) -> Result<Option<accounts::Model>, sea_orm::DbErr> {
+        accounts::Entity::find_by_id(id)
             .filter(accounts::Column::DeletedAt.is_null())
             .one(self.db.conn())
             .await

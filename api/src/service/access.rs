@@ -80,16 +80,17 @@ impl AccessServiceImpl {
 
         let account = self
             .accounts_repo
-            .find_by_username(DEMO_SUBJECT)
+            .find_by_id(session.account_id)
             .await
             .ok()
             .flatten()?;
 
-        if account.id == session.account_id {
-            Some(DEMO_SUBJECT.to_owned())
-        } else {
-            None
-        }
+        Some(
+            account
+                .username
+                .or(account.email)
+                .unwrap_or_else(|| account.uid.to_string()),
+        )
     }
 
     fn unauthorized_response(&self, headers: &HeaderMap) -> Response {

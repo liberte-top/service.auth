@@ -80,16 +80,17 @@ impl AuthContextServiceImpl {
 
         let account = self
             .accounts_repo
-            .find_by_username("demo-user")
+            .find_by_id(session.account_id)
             .await
             .ok()
             .flatten()?;
 
-        if account.id == session.account_id {
-            Some("demo-user".to_owned())
-        } else {
-            None
-        }
+        Some(
+            account
+                .username
+                .or(account.email)
+                .unwrap_or_else(|| account.uid.to_string()),
+        )
     }
 }
 
