@@ -43,10 +43,16 @@ pub struct CompleteLoginRequest {
 }
 
 fn session_cookie_value(state: &AppState, session_token: &str) -> String {
+    let domain = state
+        .config()
+        .forwardauth_session_cookie_domain()
+        .map(|value| format!("; Domain={value}"))
+        .unwrap_or_default();
     format!(
-        "{}={}; Path=/; HttpOnly; Secure; SameSite=Lax",
+        "{}={}; Path=/; HttpOnly; Secure; SameSite=Lax{}",
         state.config().forwardauth_session_cookie_name(),
-        session_token
+        session_token,
+        domain
     )
 }
 

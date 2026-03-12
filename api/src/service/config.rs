@@ -1,4 +1,5 @@
 use std::{env, sync::Arc};
+use url::Url;
 
 use crate::config::Config;
 
@@ -6,6 +7,7 @@ pub trait ConfigService: Send + Sync {
     fn port(&self) -> u16;
     fn forwardauth_session_cookie_name(&self) -> &str;
     fn forwardauth_session_cookie_value(&self) -> &str;
+    fn forwardauth_session_cookie_domain(&self) -> Option<&str>;
     fn forwardauth_login_url(&self) -> &str;
     fn resend_api_key(&self) -> Option<&str>;
     fn email_from(&self) -> &str;
@@ -36,6 +38,18 @@ impl ConfigServiceImpl {
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "https://auth.liberte.top/".to_owned());
+        let forwardauth_session_cookie_domain = env::var("FORWARDAUTH_SESSION_COOKIE_DOMAIN")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| {
+                Url::parse(&forwardauth_login_url)
+                    .ok()
+                    .and_then(|url| url.host_str().map(ToOwned::to_owned))
+                    .and_then(|host| {
+                        host.strip_suffix(".liberte.top")
+                            .map(|_| ".liberte.top".to_owned())
+                    })
+            });
         let resend_api_key = env::var("RESEND_API_KEY")
             .ok()
             .filter(|value| !value.trim().is_empty());
@@ -62,6 +76,7 @@ impl ConfigServiceImpl {
                 port,
                 forwardauth_session_cookie_name,
                 forwardauth_session_cookie_value,
+                forwardauth_session_cookie_domain,
                 forwardauth_login_url,
                 resend_api_key,
                 email_from,
@@ -84,6 +99,10 @@ impl ConfigService for ConfigServiceImpl {
 
     fn forwardauth_session_cookie_value(&self) -> &str {
         &self.config.forwardauth_session_cookie_value
+    }
+
+    fn forwardauth_session_cookie_domain(&self) -> Option<&str> {
+        self.config.forwardauth_session_cookie_domain.as_deref()
     }
 
     fn forwardauth_login_url(&self) -> &str {
