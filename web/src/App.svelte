@@ -23,6 +23,8 @@
   let authContext: AuthContext = { authenticated: false, subject: null, auth_type: null, scopes: [] };
   let contextStatus = "checking";
   let lastContextCheck = "never";
+  let lastContextHttpStatus = "n/a";
+  let lastContextPayload = "not loaded";
 
   $: modeTitle = mode === "login" ? "Sign in with email" : "Create your account";
   $: modeSummary = mode === "login"
@@ -73,8 +75,13 @@
   }
 
   async function loadContext() {
-    const response = await apiClient.get<AuthContext>("/api/v1/context");
-    return response.data;
+    const response = await apiClient.get<AuthContext>("/api/v1/context", { validateStatus: () => true });
+    lastContextHttpStatus = String(response.status);
+    lastContextPayload = JSON.stringify(response.data, null, 2);
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    }
+    throw new Error(`context request failed with HTTP ${response.status}`);
   }
 
   async function refreshContext(showBanner = false) {
@@ -215,6 +222,9 @@
       <p class="status-meta">
         Context status: <code>{contextStatus}</code> · last checked <code>{lastContextCheck}</code>
       </p>
+      <p class="status-meta">
+        HTTP status: <code>{lastContextHttpStatus}</code>
+      </p>
 
       {#if authContext.authenticated}
         <dl class="session-grid">
@@ -242,6 +252,11 @@
           <button class="secondary" on:click={() => refreshContext(true)}>Refresh session</button>
         </div>
       {/if}
+
+      <details class="diagnostics-block">
+        <summary>Raw auth context payload</summary>
+        <pre>{lastContextPayload}</pre>
+      </details>
     </section>
   </section>
 

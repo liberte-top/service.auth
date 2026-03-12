@@ -157,6 +157,16 @@ code {
   margin: 0.9rem 0 0;
 }
 
+.diagnostics-block {
+  margin-top: 1rem;
+}
+
+.diagnostics-block summary {
+  cursor: pointer;
+  color: #1d805f;
+  font-weight: 700;
+}
+
 .destination-chip {
   margin: 0.8rem 0 0;
   padding: 0.9rem 1rem;
