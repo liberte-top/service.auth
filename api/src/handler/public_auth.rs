@@ -108,6 +108,33 @@ fn login_page_url(
     url.into()
 }
 
+fn flow_page_url(
+    state: &AppState,
+    step: &str,
+    email: Option<&str>,
+    rewrite: Option<&str>,
+    next: Option<&str>,
+) -> String {
+    let mut url = Url::parse(state.config().forwardauth_login_url())
+        .ok()
+        .and_then(|base| base.join("flow.html").ok())
+        .unwrap_or_else(|| Url::parse("https://auth.liberte.top/flow.html").unwrap());
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("step", step);
+        if let Some(email) = email.filter(|value| !value.is_empty()) {
+            query.append_pair("email", email);
+        }
+        if let Some(rewrite) = sanitized_rewrite(rewrite) {
+            query.append_pair("rewrite", &rewrite);
+        }
+        if let Some(next) = sanitized_rewrite(next) {
+            query.append_pair("next", &next);
+        }
+    }
+    url.into()
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/auth/context",
@@ -189,15 +216,34 @@ pub async fn verify_email(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     else {
-        return Err(StatusCode::NOT_FOUND);
+        return Ok(Redirect::to(&flow_page_url(
+            &state,
+            "verify-invalid",
+            None,
+            query.rewrite.as_deref(),
+            Some(&login_page_url(
+                &state,
+                "register",
+                None,
+                false,
+                query.rewrite.as_deref(),
+            )),
+        ))
+        .into_response());
     };
 
-    Ok(Redirect::to(&login_page_url(
+    Ok(Redirect::to(&flow_page_url(
         &state,
-        "login",
+        "verify-success",
         Some(&result.email),
-        true,
         query.rewrite.as_deref(),
+        Some(&login_page_url(
+            &state,
+            "login",
+            Some(&result.email),
+            true,
+            query.rewrite.as_deref(),
+        )),
     ))
     .into_response())
 }
@@ -279,12 +325,29 @@ pub async fn complete_email_login_link(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     else {
-        return Err(StatusCode::NOT_FOUND);
+        return Ok(Redirect::to(&flow_page_url(
+            &state,
+            "login-invalid",
+            None,
+            query.rewrite.as_deref(),
+            Some(&login_page_url(
+                &state,
+                "login",
+                None,
+                false,
+                query.rewrite.as_deref(),
+            )),
+        ))
+        .into_response());
     };
 
-    let mut response = Redirect::to(&resolve_post_auth_redirect(
+    let next = resolve_post_auth_redirect(&state, query.rewrite.as_deref());
+    let mut response = Redirect::to(&flow_page_url(
         &state,
+        "login-success",
+        None,
         query.rewrite.as_deref(),
+        Some(&next),
     ))
     .into_response();
     response.headers_mut().insert(

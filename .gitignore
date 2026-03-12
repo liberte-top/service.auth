@@ -15,6 +15,7 @@
 # web
 /web/node_modules/
 /web/dist/
+/web/public/version.json
 
 # e2e
 /e2e/node_modules/

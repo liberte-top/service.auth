@@ -31,6 +31,7 @@
     ? "We email a one-time sign-in link so you can continue safely without a password."
     : "Register once, verify your inbox, and we will use the same email-link flow for future sign-ins.";
   $: primaryLabel = mode === "login" ? "Send sign-in link" : "Send verification email";
+  $: destinationLabel = rewrite || profileUrl;
 
   function sanitizeRewrite(value: string) {
     const trimmed = value.trim();
@@ -181,38 +182,73 @@
 </script>
 
 <main class="shell">
-  <section class="hero-panel">
-    <section class="hero card">
-      <p class="eyebrow">liberte.top auth</p>
-      <h1>Simple email auth for every app entrypoint.</h1>
-      <p class="lede">Register, verify, and sign in from one place. We keep the destination context so you land where you intended.</p>
+  <section class="hero-layout">
+    <section class="hero hero-card card">
+      <div class="hero-intro">
+        <p class="eyebrow">liberte.top auth</p>
+        <h1>A clean sign-in flow for the whole liberte.top network.</h1>
+        <p class="lede">Register, verify, and sign in from one destination. We preserve the app you originally requested, then return you there with an active session.</p>
+      </div>
 
-      <div class="hero-points">
+      <div class="hero-highlights">
         <div>
-          <strong>Passwordless</strong>
-          <p>Every sign-in uses a one-time email link instead of stored passwords.</p>
+          <span>Zero passwords</span>
+          <strong>One-time email links only</strong>
+          <p>We never ask you to create or remember a password for everyday access.</p>
         </div>
         <div>
-          <strong>Same session domain</strong>
-          <p>Once you complete auth, the session follows you across <code>.liberte.top</code>.</p>
+          <span>Cross-site session</span>
+          <strong>One session across <code>.liberte.top</code></strong>
+          <p>Complete auth once and continue through linked apps without starting over.</p>
         </div>
         <div>
-          <strong>Redirect priority</strong>
-          <p>After auth we honor <code>rewrite</code> first, then fall back to your profile.</p>
+          <span>Routing logic</span>
+          <strong>Redirects honor <code>rewrite</code> first</strong>
+          <p>If a destination is provided, we send you back there after verification or login.</p>
+        </div>
+      </div>
+
+      <div class="hero-footnote">
+        <div class="metric-chip">
+          <span class="metric-label">Default destination</span>
+          <strong>Profile page</strong>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-label">Verification step</span>
+          <strong>Email-first onboarding</strong>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-label">Session state</span>
+          <strong>{authContext.authenticated ? "Active in this browser" : "Waiting for sign-in"}</strong>
         </div>
       </div>
     </section>
 
-    <section class="card destination-card">
-      <p class="eyebrow">Current destination</p>
-      {#if rewrite}
-        <p class="destination-copy">Your session will continue to:</p>
-        <p class="destination-chip"><code>{rewrite}</code></p>
-      {:else}
-        <p class="destination-copy">No rewrite target was provided. Successful login falls back to your profile page.</p>
-      {/if}
-    </section>
+    <aside class="hero-sidebar">
+      <section class="card destination-card accent-card">
+        <p class="eyebrow">Current destination</p>
+        <p class="destination-copy">
+          {#if rewrite}
+            You will return directly to the requested page after the auth flow completes.
+          {:else}
+            No rewrite target was provided, so the default landing page will be your profile.
+          {/if}
+        </p>
+        <p class="destination-chip"><code>{destinationLabel}</code></p>
+      </section>
 
+      <section class="card info-card">
+        <p class="eyebrow">What to expect</p>
+        <ul class="info-list">
+          <li>Register once with your email.</li>
+          <li>Open the verification or sign-in link from your inbox.</li>
+          <li>Return with an authenticated same-domain session.</li>
+        </ul>
+      </section>
+    </aside>
+  </section>
+
+  <section class="hero-panel">
     <section class="card session-card">
       <p class="eyebrow">Current session</p>
       <div class="session-status-row">
@@ -258,6 +294,28 @@
         <pre>{lastContextPayload}</pre>
       </details>
     </section>
+
+    <section class="card support-card">
+      <p class="eyebrow">Why this flow feels normal</p>
+      <div class="support-grid">
+        <div>
+          <strong>Familiar inbox journey</strong>
+          <p>Every major step is guided by a clear email action instead of a custom password reset maze.</p>
+        </div>
+        <div>
+          <strong>Single entrypoint</strong>
+          <p>Registration, verification, and sign-in all happen from the same auth home.</p>
+        </div>
+        <div>
+          <strong>Destination-aware</strong>
+          <p>Your original app URL stays attached to the flow so you can pick up where you left off.</p>
+        </div>
+        <div>
+          <strong>Visible session state</strong>
+          <p>This page shows whether the browser already holds an auth session before you submit anything.</p>
+        </div>
+      </div>
+    </section>
   </section>
 
   <section class="card auth-card">
@@ -272,6 +330,21 @@
           <li>{mode === "register" ? "Verify the email we send you." : "Open the one-time sign-in link."}</li>
           <li>We route you to <code>rewrite</code> first, otherwise to your profile.</li>
         </ol>
+
+        <div class="trust-strip">
+          <div>
+            <span class="trust-label">Mode</span>
+            <strong>{mode === "login" ? "Returning user" : "New registration"}</strong>
+          </div>
+          <div>
+            <span class="trust-label">Delivery</span>
+            <strong>Email link</strong>
+          </div>
+          <div>
+            <span class="trust-label">Fallback</span>
+            <strong>Profile page</strong>
+          </div>
+        </div>
       </div>
 
       <div class="auth-form-block">
@@ -292,9 +365,14 @@
         {#if mode === "register"}
           <label>
             Display name
-            <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
+            <input bind:value={displayName} autocomplete="name" placeholder="Optional, shown on your account" />
           </label>
         {/if}
+
+        <div class="field-note">
+          <strong>Destination after auth</strong>
+          <span>{rewrite ? "Your current request will send you back to the provided rewrite URL." : "No rewrite target is present, so successful auth opens your profile page."}</span>
+        </div>
 
         <div class="actions auth-actions">
           <button disabled={busy || !email} on:click={mode === "login" ? requestLogin : requestRegistration}>
@@ -314,7 +392,30 @@
             <button class="inline-action" on:click={() => (mode = "login")}>Send a sign-in link</button>
           {/if}
         </p>
+
+        <p class="helper-copy">Emails usually arrive within a minute. If you are registering and already requested a link, use resend verification to issue a fresh one.</p>
       </div>
+    </div>
+  </section>
+
+  <section class="card faq-card">
+    <div>
+      <p class="eyebrow">Need to know</p>
+      <h2>Common questions before you continue</h2>
+    </div>
+    <div class="faq-grid">
+      <article>
+        <strong>What if I already have a session?</strong>
+        <p>This page detects the current browser session and lets you continue without starting the flow again.</p>
+      </article>
+      <article>
+        <strong>What if I do not see the email?</strong>
+        <p>Check spam or promotions, then resend the verification mail or request another sign-in link.</p>
+      </article>
+      <article>
+        <strong>Where do I land after login?</strong>
+        <p>If <code>rewrite</code> exists we use it first; otherwise we send you to your profile page.</p>
+      </article>
     </div>
   </section>
 </main>
