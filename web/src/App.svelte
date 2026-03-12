@@ -21,6 +21,8 @@
   let banner = "";
   let rewrite = "";
   let authContext: AuthContext = { authenticated: false, subject: null, auth_type: null, scopes: [] };
+  let contextStatus = "checking";
+  let lastContextCheck = "never";
 
   $: modeTitle = mode === "login" ? "Sign in with email" : "Create your account";
   $: modeSummary = mode === "login"
@@ -73,6 +75,29 @@
   async function loadContext() {
     const response = await apiClient.get<AuthContext>("/api/v1/context");
     return response.data;
+  }
+
+  async function refreshContext(showBanner = false) {
+    contextStatus = "checking";
+    try {
+      const context = await loadContext();
+      authContext = context;
+      contextStatus = context.authenticated ? "signed-in" : "signed-out";
+      lastContextCheck = new Date().toLocaleTimeString();
+      if (showBanner) {
+        bannerTone = "info";
+        banner = context.authenticated
+          ? "Session refreshed. You are still signed in."
+          : "Session refreshed. No active auth session is present.";
+      }
+      return context;
+    } catch {
+      contextStatus = "unavailable";
+      lastContextCheck = new Date().toLocaleTimeString();
+      bannerTone = "error";
+      banner = "Auth context is currently unavailable.";
+      return null;
+    }
   }
 
   function signedInSummary() {
@@ -138,18 +163,12 @@
     rewrite = resolveRewrite();
     applyQueryState();
 
-    try {
-      const context = await loadContext();
-      authContext = context;
-      if (context.authenticated) {
-        bannerTone = "success";
-        banner = rewrite
-          ? "You already have an active session. Continue to your destination whenever you are ready."
-          : "You already have an active session. Continue to your profile whenever you are ready.";
-      }
-    } catch {
-      bannerTone = "error";
-      banner = "Auth context is currently unavailable.";
+    const context = await refreshContext();
+    if (context?.authenticated) {
+      bannerTone = "success";
+      banner = rewrite
+        ? "You already have an active session. Continue to your destination whenever you are ready."
+        : "You already have an active session. Continue to your profile whenever you are ready.";
     }
   });
 </script>
@@ -193,6 +212,9 @@
         <strong>{authContext.authenticated ? "Signed in" : "Signed out"}</strong>
         <span class:online={authContext.authenticated} class="session-pill">{authContext.authenticated ? "active" : "idle"}</span>
       </div>
+      <p class="status-meta">
+        Context status: <code>{contextStatus}</code> · last checked <code>{lastContextCheck}</code>
+      </p>
 
       {#if authContext.authenticated}
         <dl class="session-grid">
@@ -212,9 +234,13 @@
         <div class="actions session-actions">
           <a class="button-link" href={preferredRedirectTarget()}>{rewrite ? "Continue" : "Open profile"}</a>
           <a class="button-link secondary-link" href="https://smoke.liberte.top/">Open smoke app</a>
+          <button class="secondary" on:click={() => refreshContext(true)}>Refresh session</button>
         </div>
       {:else}
         <p class="destination-copy">No active auth session is present in this browser yet.</p>
+        <div class="actions session-actions">
+          <button class="secondary" on:click={() => refreshContext(true)}>Refresh session</button>
+        </div>
       {/if}
     </section>
   </section>

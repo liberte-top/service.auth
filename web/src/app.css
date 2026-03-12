@@ -151,6 +151,12 @@ code {
   margin-top: auto;
 }
 
+.status-meta {
+  color: #5b756d;
+  font-size: 0.88rem;
+  margin: 0.9rem 0 0;
+}
+
 .destination-chip {
   margin: 0.8rem 0 0;
   padding: 0.9rem 1rem;
