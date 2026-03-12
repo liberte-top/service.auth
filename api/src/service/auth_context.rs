@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use axum::{
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderMap, HeaderValue},
     response::{IntoResponse, Response},
     Json,
 };
@@ -13,8 +13,6 @@ use crate::repo::sessions::SessionsRepo;
 use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
 
 use super::config::ConfigService;
-
-const DEMO_SESSION_ETAG: &str = "W/\"demo-smoke-session-v1\"";
 
 #[derive(Serialize, ToSchema)]
 pub struct AuthContextResponse {
@@ -98,19 +96,6 @@ impl AuthContextService for AuthContextServiceImpl {
         let identity = session_identity.or(api_key_identity.clone());
         let authenticated = identity.is_some();
 
-        if authenticated
-            && headers
-                .get(header::IF_NONE_MATCH)
-                .and_then(|raw| raw.to_str().ok())
-                .is_some_and(|value| value == DEMO_SESSION_ETAG)
-        {
-            let mut response = StatusCode::NOT_MODIFIED.into_response();
-            response
-                .headers_mut()
-                .insert(header::ETAG, HeaderValue::from_static(DEMO_SESSION_ETAG));
-            return response;
-        }
-
         let mut response = if authenticated {
             let (account_id, subject) =
                 identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
@@ -136,9 +121,19 @@ impl AuthContextService for AuthContextServiceImpl {
             .into_response()
         };
 
+        response.headers_mut().insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("private, no-store, max-age=0"),
+        );
         response
             .headers_mut()
-            .insert(header::ETAG, HeaderValue::from_static(DEMO_SESSION_ETAG));
+            .insert(header::PRAGMA, HeaderValue::from_static("no-cache"));
+        response.headers_mut().insert(
+            header::VARY,
+            HeaderValue::from_static(
+                "cookie, authorization, origin, access-control-request-method, access-control-request-headers",
+            ),
+        );
         response
     }
 }
