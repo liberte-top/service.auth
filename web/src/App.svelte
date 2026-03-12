@@ -21,6 +21,12 @@
   let banner = "";
   let rewrite = "";
 
+  $: modeTitle = mode === "login" ? "Sign in with email" : "Create your account";
+  $: modeSummary = mode === "login"
+    ? "We email a one-time sign-in link so you can continue safely without a password."
+    : "Register once, verify your inbox, and we will use the same email-link flow for future sign-ins.";
+  $: primaryLabel = mode === "login" ? "Send sign-in link" : "Send verification email";
+
   function sanitizeRewrite(value: string) {
     const trimmed = value.trim();
     if (!trimmed) return "";
@@ -140,56 +146,94 @@
 </script>
 
 <main class="shell">
-  <section class="hero card">
-    <p class="eyebrow">liberte.top auth</p>
-    <h1>Register once, sign in by email, and continue where you meant to go.</h1>
-    <p class="lede">
+  <section class="hero-panel">
+    <section class="hero card">
+      <p class="eyebrow">liberte.top auth</p>
+      <h1>Simple email auth for every app entrypoint.</h1>
+      <p class="lede">Register, verify, and sign in from one place. We keep the destination context so you land where you intended.</p>
+
+      <div class="hero-points">
+        <div>
+          <strong>Passwordless</strong>
+          <p>Every sign-in uses a one-time email link instead of stored passwords.</p>
+        </div>
+        <div>
+          <strong>Same session domain</strong>
+          <p>Once you complete auth, the session follows you across <code>.liberte.top</code>.</p>
+        </div>
+        <div>
+          <strong>Redirect priority</strong>
+          <p>After auth we honor <code>rewrite</code> first, then fall back to your profile.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card destination-card">
+      <p class="eyebrow">Current destination</p>
       {#if rewrite}
-        You are signing in for <code>{rewrite}</code>.
+        <p class="destination-copy">Your session will continue to:</p>
+        <p class="destination-chip"><code>{rewrite}</code></p>
       {:else}
-        This is the standard entrypoint for account registration and sign-in.
+        <p class="destination-copy">No rewrite target was provided. Successful login falls back to your profile page.</p>
       {/if}
-    </p>
+    </section>
   </section>
 
   <section class="card auth-card">
-    <div class="mode-switch" role="tablist" aria-label="Auth mode">
-      <button class:active={mode === "login"} on:click={() => (mode = "login")}>Sign in</button>
-      <button class:active={mode === "register"} on:click={() => (mode = "register")}>Register</button>
+    <div class="auth-shell">
+      <div class="auth-copy">
+        <p class="eyebrow">Account access</p>
+        <h2>{modeTitle}</h2>
+        <p class="auth-summary">{modeSummary}</p>
+
+        <ol class="flow-list">
+          <li>Enter your email address.</li>
+          <li>{mode === "register" ? "Verify the email we send you." : "Open the one-time sign-in link."}</li>
+          <li>We route you to <code>rewrite</code> first, otherwise to your profile.</li>
+        </ol>
+      </div>
+
+      <div class="auth-form-block">
+        <div class="mode-switch" role="tablist" aria-label="Auth mode">
+          <button class:active={mode === "login"} on:click={() => (mode = "login")}>Sign in</button>
+          <button class:active={mode === "register"} on:click={() => (mode = "register")}>Register</button>
+        </div>
+
+        {#if banner}
+          <p class={`banner ${bannerTone}`}>{banner}</p>
+        {/if}
+
+        <label>
+          Email
+          <input bind:value={email} type="email" autocomplete="email" placeholder="you@example.com" />
+        </label>
+
+        {#if mode === "register"}
+          <label>
+            Display name
+            <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
+          </label>
+        {/if}
+
+        <div class="actions auth-actions">
+          <button disabled={busy || !email} on:click={mode === "login" ? requestLogin : requestRegistration}>
+            {busy ? "Sending..." : primaryLabel}
+          </button>
+          {#if mode === "register"}
+            <button class="secondary" disabled={busy || !email} on:click={resendVerification}>Resend verification</button>
+          {/if}
+        </div>
+
+        <p class="mode-helper">
+          {#if mode === "login"}
+            Need a new account?
+            <button class="inline-action" on:click={() => (mode = "register")}>Register instead</button>
+          {:else}
+            Already verified?
+            <button class="inline-action" on:click={() => (mode = "login")}>Send a sign-in link</button>
+          {/if}
+        </p>
+      </div>
     </div>
-
-    {#if banner}
-      <p class={`banner ${bannerTone}`}>{banner}</p>
-    {/if}
-
-    <label>
-      Email
-      <input bind:value={email} type="email" autocomplete="email" placeholder="you@example.com" />
-    </label>
-
-    {#if mode === "register"}
-      <label>
-        Display name
-        <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
-      </label>
-    {/if}
-
-    <div class="actions">
-      {#if mode === "register"}
-        <button disabled={busy || !email} on:click={requestRegistration}>
-          {busy ? "Sending..." : "Send verification email"}
-        </button>
-        <button class="secondary" disabled={busy || !email} on:click={resendVerification}>Resend verification</button>
-      {:else}
-        <button disabled={busy || !email} on:click={requestLogin}>
-          {busy ? "Sending..." : "Send sign-in link"}
-        </button>
-      {/if}
-    </div>
-
-    <p class="hint">
-      After you complete email verification and sign-in, we redirect using <code>rewrite</code> first and
-      your profile second.
-    </p>
   </section>
 </main>

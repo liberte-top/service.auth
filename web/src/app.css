@@ -1,7 +1,10 @@
 :root {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: #132027;
-  background: radial-gradient(circle at top, #eef7f2 0%, #f7faf8 60%, #ffffff 100%);
+  background:
+    radial-gradient(circle at top left, rgba(183, 219, 203, 0.6), transparent 34%),
+    radial-gradient(circle at top right, rgba(212, 227, 245, 0.7), transparent 28%),
+    linear-gradient(180deg, #eef5f2 0%, #f8f7f2 48%, #ffffff 100%);
 }
 
 * {
@@ -20,7 +23,7 @@ main {
 }
 
 .shell {
-  max-width: 780px;
+  max-width: 1120px;
 }
 
 .card {
@@ -42,7 +45,7 @@ code {
 }
 
 .hero {
-  padding: 1.4rem;
+  padding: 1.7rem;
 }
 
 .eyebrow {
@@ -57,6 +60,59 @@ code {
 .lede {
   margin: 0;
   color: #456159;
+  max-width: 48rem;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hero-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+.hero-points div {
+  padding: 0.95rem;
+  border-radius: 12px;
+  background: rgba(242, 247, 244, 0.95);
+  border: 1px solid #dde9e3;
+}
+
+.hero-points p,
+.destination-copy,
+.auth-summary,
+.flow-list {
+  color: #4c665f;
+}
+
+.hero-points p,
+.destination-copy,
+.auth-summary {
+  margin-bottom: 0;
+}
+
+.destination-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.destination-chip {
+  margin: 0.8rem 0 0;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #f4f8f6;
+  border: 1px solid #d6e2dc;
+}
+
+.destination-chip code {
+  word-break: break-word;
 }
 
 .nav {
@@ -123,7 +179,32 @@ button.secondary {
 
 .auth-card,
 .profile-card {
-  padding: 1.25rem;
+  padding: 1.5rem;
+}
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.auth-copy h2 {
+  margin: 0 0 0.6rem;
+  font-size: 2rem;
+}
+
+.flow-list {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+
+.auth-form-block {
+  padding: 1.1rem;
+  border-radius: 16px;
+  border: 1px solid #dbe7e1;
+  background: linear-gradient(180deg, rgba(250, 252, 251, 0.96), rgba(243, 247, 245, 0.96));
 }
 
 .banner {
@@ -152,6 +233,27 @@ button.secondary {
   color: #5b756d;
   font-size: 0.92rem;
   margin-bottom: 0;
+}
+
+.auth-actions {
+  margin: 1rem 0 0.75rem;
+}
+
+.mode-helper {
+  margin: 0;
+  color: #5b756d;
+  font-size: 0.92rem;
+}
+
+.inline-action {
+  display: inline;
+  padding: 0;
+  margin-left: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: #1d805f;
+  font: inherit;
+  font-weight: 700;
 }
 
 .profile-grid {
@@ -206,6 +308,12 @@ pre {
   main {
     margin: 1rem auto;
     padding: 0.9rem;
+  }
+
+  .hero-panel,
+  .auth-shell,
+  .hero-points {
+    grid-template-columns: 1fr;
   }
 
   .actions {
