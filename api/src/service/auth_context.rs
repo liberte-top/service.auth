@@ -1,16 +1,16 @@
+use async_trait::async_trait;
 use axum::{
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
-use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
 use crate::repo::api_keys::ApiKeysRepo;
 use crate::repo::sessions::SessionsRepo;
+use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
 
 use super::config::ConfigService;
 
@@ -60,15 +60,11 @@ impl AuthContextServiceImpl {
             .get(header::COOKIE)
             .and_then(|raw| raw.to_str().ok())
             .and_then(|cookie_header| {
-                cookie_header
-                    .split(';')
-                    .find_map(|part| {
-                        let trimmed = part.trim();
-                        let prefix = format!("{cookie_name}=");
-                        trimmed
-                            .strip_prefix(prefix.as_str())
-                            .map(ToOwned::to_owned)
-                    })
+                cookie_header.split(';').find_map(|part| {
+                    let trimmed = part.trim();
+                    let prefix = format!("{cookie_name}=");
+                    trimmed.strip_prefix(prefix.as_str()).map(ToOwned::to_owned)
+                })
             })
             .filter(|value| !value.is_empty())?;
 
@@ -116,7 +112,8 @@ impl AuthContextService for AuthContextServiceImpl {
         }
 
         let mut response = if authenticated {
-            let (account_id, subject) = identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
+            let (account_id, subject) =
+                identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
             let scopes = self.resolve_scopes(account_id).await;
             Json(AuthContextResponse {
                 authenticated: true,
@@ -160,7 +157,11 @@ impl AuthContextServiceImpl {
             .get(header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
-            .or_else(|| headers.get("x-api-key").and_then(|value| value.to_str().ok()))?
+            .or_else(|| {
+                headers
+                    .get("x-api-key")
+                    .and_then(|value| value.to_str().ok())
+            })?
             .trim();
 
         let key = self
@@ -174,8 +175,12 @@ impl AuthContextServiceImpl {
             return None;
         }
 
-        let account = self.accounts_repo.find_by_id(key.account_id).await.ok().flatten()?;
+        let account = self
+            .accounts_repo
+            .find_by_id(key.account_id)
+            .await
+            .ok()
+            .flatten()?;
         Some((account.id, account.uid.to_string()))
     }
-
 }

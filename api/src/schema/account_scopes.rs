@@ -15,13 +15,20 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(AccountScopes::AccountId).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(AccountScopes::AccountId)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(AccountScopes::ScopeName).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_account_scopes_account_id")
                             .from(AccountScopes::Table, AccountScopes::AccountId)
-                            .to(super::accounts::Accounts::Table, super::accounts::Accounts::Id)
+                            .to(
+                                super::accounts::Accounts::Table,
+                                super::accounts::Accounts::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

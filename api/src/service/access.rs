@@ -1,14 +1,14 @@
+use async_trait::async_trait;
 use axum::{
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::repo::{
-    api_keys::ApiKeysRepo,
     account_scopes::AccountScopesRepo,
     accounts::AccountsRepo,
+    api_keys::ApiKeysRepo,
     route_policies::{RoutePoliciesRepo, RoutePolicyRecord},
     sessions::SessionsRepo,
 };
@@ -58,15 +58,11 @@ impl AccessServiceImpl {
             .get(header::COOKIE)
             .and_then(|raw| raw.to_str().ok())
             .and_then(|cookie_header| {
-                cookie_header
-                    .split(';')
-                    .find_map(|part| {
-                        let trimmed = part.trim();
-                        let prefix = format!("{cookie_name}=");
-                        trimmed
-                            .strip_prefix(prefix.as_str())
-                            .map(ToOwned::to_owned)
-                    })
+                cookie_header.split(';').find_map(|part| {
+                    let trimmed = part.trim();
+                    let prefix = format!("{cookie_name}=");
+                    trimmed.strip_prefix(prefix.as_str()).map(ToOwned::to_owned)
+                })
             })
             .filter(|value| !value.is_empty())?;
 
@@ -146,7 +142,12 @@ impl AccessService for AccessServiceImpl {
             .unwrap_or("/");
 
         if let Err(status) = self
-            .authorize_request(identity.account_id, host_from_headers(headers), method, path)
+            .authorize_request(
+                identity.account_id,
+                host_from_headers(headers),
+                method,
+                path,
+            )
             .await
         {
             return status.into_response();
@@ -156,8 +157,9 @@ impl AccessService for AccessServiceImpl {
         let response_headers = response.headers_mut();
         response_headers.insert(
             "x-auth-subject",
-            HeaderValue::from_str(&identity.subject)
-                .unwrap_or_else(|_| HeaderValue::from_static("00000000-0000-0000-0000-000000000000")),
+            HeaderValue::from_str(&identity.subject).unwrap_or_else(|_| {
+                HeaderValue::from_static("00000000-0000-0000-0000-000000000000")
+            }),
         );
         response_headers.insert(
             "x-auth-type",
@@ -206,7 +208,11 @@ impl AccessServiceImpl {
         method: &str,
         path: &str,
     ) -> Result<(), StatusCode> {
-        let policies = self.route_policies_repo.list_enabled().await.unwrap_or_default();
+        let policies = self
+            .route_policies_repo
+            .list_enabled()
+            .await
+            .unwrap_or_default();
 
         let Some(policy) = match_policy(&policies, host, method, path) else {
             return Ok(());
@@ -237,7 +243,11 @@ impl AccessServiceImpl {
             .get(header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
-            .or_else(|| headers.get("x-api-key").and_then(|value| value.to_str().ok()))?
+            .or_else(|| {
+                headers
+                    .get("x-api-key")
+                    .and_then(|value| value.to_str().ok())
+            })?
             .trim();
 
         let key = self
@@ -251,7 +261,12 @@ impl AccessServiceImpl {
             return None;
         }
 
-        let account = self.accounts_repo.find_by_id(key.account_id).await.ok().flatten()?;
+        let account = self
+            .accounts_repo
+            .find_by_id(key.account_id)
+            .await
+            .ok()
+            .flatten()?;
         let scopes = self.resolve_scopes_by_account_id(account.id).await;
 
         Some(ResolvedIdentity {

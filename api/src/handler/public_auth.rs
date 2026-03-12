@@ -7,6 +7,7 @@ use axum::{
 };
 use serde::Deserialize;
 use std::sync::Arc;
+use url::Url;
 use utoipa::ToSchema;
 
 use crate::{
@@ -21,16 +22,19 @@ use crate::{
 pub struct RegisterEmailRequest {
     pub email: String,
     pub display_name: Option<String>,
+    pub rewrite: Option<String>,
 }
 
 #[derive(Deserialize, ToSchema)]
 pub struct EmailOnlyRequest {
     pub email: String,
+    pub rewrite: Option<String>,
 }
 
 #[derive(Deserialize, ToSchema)]
 pub struct VerifyQuery {
     pub token: String,
+    pub rewrite: Option<String>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -44,6 +48,58 @@ fn session_cookie_value(state: &AppState, session_token: &str) -> String {
         state.config().forwardauth_session_cookie_name(),
         session_token
     )
+}
+
+fn profile_url(state: &AppState) -> String {
+    Url::parse(state.config().forwardauth_login_url())
+        .ok()
+        .and_then(|base| base.join("profile.html").ok())
+        .map(Into::into)
+        .unwrap_or_else(|| "https://auth.liberte.top/profile.html".to_owned())
+}
+
+fn sanitized_rewrite(rewrite: Option<&str>) -> Option<String> {
+    let value = rewrite?.trim();
+    if value.is_empty() {
+        return None;
+    }
+    if value.starts_with('/') {
+        return Some(value.to_owned());
+    }
+    let url = Url::parse(value).ok()?;
+    match url.scheme() {
+        "http" | "https" => Some(url.into()),
+        _ => None,
+    }
+}
+
+fn resolve_post_auth_redirect(state: &AppState, rewrite: Option<&str>) -> String {
+    sanitized_rewrite(rewrite).unwrap_or_else(|| profile_url(state))
+}
+
+fn login_page_url(
+    state: &AppState,
+    mode: &str,
+    email: Option<&str>,
+    verified: bool,
+    rewrite: Option<&str>,
+) -> String {
+    let mut url = Url::parse(state.config().forwardauth_login_url())
+        .unwrap_or_else(|_| Url::parse("https://auth.liberte.top/").unwrap());
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("mode", mode);
+        if verified {
+            query.append_pair("verified", "1");
+        }
+        if let Some(email) = email.filter(|value| !value.is_empty()) {
+            query.append_pair("email", email);
+        }
+        if let Some(rewrite) = sanitized_rewrite(rewrite) {
+            query.append_pair("rewrite", &rewrite);
+        }
+    }
+    url.into()
 }
 
 #[utoipa::path(
@@ -78,6 +134,7 @@ pub async fn register_email(
         .register_email(crate::service::email_auth::RegisterEmailInput {
             email: payload.email,
             display_name: payload.display_name,
+            rewrite: payload.rewrite,
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -97,7 +154,10 @@ pub async fn resend_verify_email(
 ) -> Result<(StatusCode, Json<EmailActionAccepted>), StatusCode> {
     let result = state
         .email_auth()
-        .resend_verify(crate::service::email_auth::ResendVerifyInput { email: payload.email })
+        .resend_verify(crate::service::email_auth::ResendVerifyInput {
+            email: payload.email,
+            rewrite: payload.rewrite,
+        })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok((StatusCode::ACCEPTED, Json(result)))
@@ -116,14 +176,24 @@ pub async fn resend_verify_email(
 pub async fn verify_email(
     State(state): State<Arc<AppState>>,
     Query(query): Query<VerifyQuery>,
-) -> Result<Json<EmailVerifyResult>, StatusCode> {
-    state
+) -> Result<Response, StatusCode> {
+    let Some(result) = state
         .email_auth()
         .verify_email(&query.token)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .map(Json)
-        .ok_or(StatusCode::NOT_FOUND)
+    else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    Ok(Redirect::to(&login_page_url(
+        &state,
+        "login",
+        Some(&result.email),
+        true,
+        query.rewrite.as_deref(),
+    ))
+    .into_response())
 }
 
 #[utoipa::path(
@@ -139,7 +209,10 @@ pub async fn request_email_login(
 ) -> Result<(StatusCode, Json<EmailActionAccepted>), StatusCode> {
     let result = state
         .email_auth()
-        .request_login(crate::service::email_auth::LoginEmailInput { email: payload.email })
+        .request_login(crate::service::email_auth::LoginEmailInput {
+            email: payload.email,
+            rewrite: payload.rewrite,
+        })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok((StatusCode::ACCEPTED, Json(result)))
@@ -161,7 +234,9 @@ pub async fn complete_email_login(
 ) -> Result<(HeaderMap, Json<EmailLoginResult>), StatusCode> {
     let Some(result) = state
         .email_auth()
-        .complete_login(crate::service::email_auth::CompleteEmailLoginInput { token: payload.token })
+        .complete_login(crate::service::email_auth::CompleteEmailLoginInput {
+            token: payload.token,
+        })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     else {
@@ -201,7 +276,11 @@ pub async fn complete_email_login_link(
         return Err(StatusCode::NOT_FOUND);
     };
 
-    let mut response = Redirect::to(state.config().forwardauth_login_url()).into_response();
+    let mut response = Redirect::to(&resolve_post_auth_redirect(
+        &state,
+        query.rewrite.as_deref(),
+    ))
+    .into_response();
     response.headers_mut().insert(
         header::SET_COOKIE,
         HeaderValue::from_str(&session_cookie_value(&state, &result.session_token))
@@ -216,7 +295,10 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/v1/auth/context", get(context))
         .route("/api/v1/context", get(context))
         .route("/api/v1/auth/register/email", post(register_email))
-        .route("/api/v1/auth/verify/email/resend", post(resend_verify_email))
+        .route(
+            "/api/v1/auth/verify/email/resend",
+            post(resend_verify_email),
+        )
         .route("/api/v1/auth/verify/email", get(verify_email))
         .route("/api/v1/auth/login/email", post(request_email_login))
         .route(

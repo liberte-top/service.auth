@@ -6,12 +6,7 @@ use super::config::ConfigService;
 
 #[async_trait]
 pub trait MailerService: Send + Sync {
-    async fn send_email(
-        &self,
-        to: &str,
-        subject: &str,
-        text: &str,
-    ) -> Result<(), reqwest::Error>;
+    async fn send_email(&self, to: &str, subject: &str, text: &str) -> Result<(), reqwest::Error>;
 }
 
 pub struct ResendMailerService {
@@ -30,12 +25,7 @@ impl ResendMailerService {
 
 #[async_trait]
 impl MailerService for ResendMailerService {
-    async fn send_email(
-        &self,
-        to: &str,
-        subject: &str,
-        text: &str,
-    ) -> Result<(), reqwest::Error> {
+    async fn send_email(&self, to: &str, subject: &str, text: &str) -> Result<(), reqwest::Error> {
         let Some(api_key) = self.config.resend_api_key() else {
             return Ok(());
         };

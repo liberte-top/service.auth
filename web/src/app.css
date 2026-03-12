@@ -19,6 +19,10 @@ main {
   padding: 1.25rem;
 }
 
+.shell {
+  max-width: 780px;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid #d4e4dd;
@@ -30,6 +34,29 @@ main {
 
 h1 {
   margin: 0 0 0.75rem;
+  line-height: 1.1;
+}
+
+code {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.hero {
+  padding: 1.4rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #1d805f;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lede {
+  margin: 0;
+  color: #456159;
 }
 
 .nav {
@@ -72,6 +99,93 @@ button {
   cursor: pointer;
 }
 
+button.secondary {
+  background: #dcebe4;
+  color: #1b493d;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mode-switch button {
+  background: #e8f1ec;
+  color: #335348;
+}
+
+.mode-switch button.active {
+  background: #1d805f;
+  color: white;
+}
+
+.auth-card,
+.profile-card {
+  padding: 1.25rem;
+}
+
+.banner {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.banner.info {
+  background: #edf5ff;
+  border-color: #c9dcf7;
+}
+
+.banner.success {
+  background: #edf8f1;
+  border-color: #c9e5d2;
+}
+
+.banner.error {
+  background: #fff1f1;
+  border-color: #f1cccc;
+}
+
+.hint {
+  color: #5b756d;
+  font-size: 0.92rem;
+  margin-bottom: 0;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.profile-grid dt {
+  font-size: 0.82rem;
+  color: #5b756d;
+  margin-bottom: 0.2rem;
+}
+
+.profile-grid dd {
+  margin: 0;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  background: #1d805f;
+  color: white;
+  text-decoration: none;
+}
+
+.secondary-link {
+  background: #dcebe4;
+  color: #1b493d;
+}
+
 pre {
   overflow: auto;
   background: #f5f8f6;
@@ -86,4 +200,15 @@ pre {
 
 .status-fail {
   color: #b22a2a;
+}
+
+@media (max-width: 640px) {
+  main {
+    margin: 1rem auto;
+    padding: 0.9rem;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
 }

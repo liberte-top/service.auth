@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use serde::Serialize;
 use std::sync::Arc;
+use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -21,14 +22,17 @@ const LOGIN_PURPOSE: &str = "login_email";
 pub struct RegisterEmailInput {
     pub email: String,
     pub display_name: Option<String>,
+    pub rewrite: Option<String>,
 }
 
 pub struct ResendVerifyInput {
     pub email: String,
+    pub rewrite: Option<String>,
 }
 
 pub struct LoginEmailInput {
     pub email: String,
+    pub rewrite: Option<String>,
 }
 
 pub struct CompleteEmailLoginInput {
@@ -56,11 +60,23 @@ pub struct EmailLoginResult {
 
 #[async_trait]
 pub trait EmailAuthService: Send + Sync {
-    async fn register_email(&self, input: RegisterEmailInput) -> Result<EmailActionAccepted, sea_orm::DbErr>;
-    async fn resend_verify(&self, input: ResendVerifyInput) -> Result<EmailActionAccepted, sea_orm::DbErr>;
+    async fn register_email(
+        &self,
+        input: RegisterEmailInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr>;
+    async fn resend_verify(
+        &self,
+        input: ResendVerifyInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr>;
     async fn verify_email(&self, token: &str) -> Result<Option<EmailVerifyResult>, sea_orm::DbErr>;
-    async fn request_login(&self, input: LoginEmailInput) -> Result<EmailActionAccepted, sea_orm::DbErr>;
-    async fn complete_login(&self, input: CompleteEmailLoginInput) -> Result<Option<EmailLoginResult>, sea_orm::DbErr>;
+    async fn request_login(
+        &self,
+        input: LoginEmailInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr>;
+    async fn complete_login(
+        &self,
+        input: CompleteEmailLoginInput,
+    ) -> Result<Option<EmailLoginResult>, sea_orm::DbErr>;
 }
 
 pub struct EmailAuthServiceImpl {
@@ -102,12 +118,26 @@ impl EmailAuthServiceImpl {
         Utc::now() + Duration::seconds(self.config.email_token_ttl_secs())
     }
 
+    fn build_action_link(base_url: &str, raw_token: &str, rewrite: Option<&str>) -> String {
+        let mut url = Url::parse(base_url)
+            .unwrap_or_else(|_| Url::parse("https://auth.liberte.top/").unwrap());
+        {
+            let mut query = url.query_pairs_mut();
+            query.append_pair("token", raw_token);
+            if let Some(rewrite) = rewrite.filter(|value| !value.is_empty()) {
+                query.append_pair("rewrite", rewrite);
+            }
+        }
+        url.into()
+    }
+
     async fn issue_token(
         &self,
         email: &account_emails::Model,
         purpose: &str,
         base_url: &str,
         subject: &str,
+        rewrite: Option<&str>,
     ) -> Result<(), sea_orm::DbErr> {
         let raw_token = Uuid::new_v4().to_string();
         let token = email_tokens::ActiveModel {
@@ -119,9 +149,8 @@ impl EmailAuthServiceImpl {
         };
         self.email_tokens_repo.insert(token).await?;
 
-        let body = format!(
-            "Use this link to continue: {base_url}?token={raw_token}\n\nRaw token: {raw_token}"
-        );
+        let action_link = Self::build_action_link(base_url, &raw_token, rewrite);
+        let body = format!("Use this link to continue: {action_link}\n\nRaw token: {raw_token}");
         let _ = self
             .mailer
             .send_email(&email.email_normalized, subject, &body)
@@ -133,7 +162,10 @@ impl EmailAuthServiceImpl {
 
 #[async_trait]
 impl EmailAuthService for EmailAuthServiceImpl {
-    async fn register_email(&self, input: RegisterEmailInput) -> Result<EmailActionAccepted, sea_orm::DbErr> {
+    async fn register_email(
+        &self,
+        input: RegisterEmailInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr> {
         let email = Self::normalize_email(&input.email);
         if let Some(existing) = self.account_emails_repo.find_by_email(&email).await? {
             if existing.verified_at.is_none() {
@@ -142,6 +174,7 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     VERIFY_PURPOSE,
                     self.config.email_verify_base_url(),
                     "Verify your email",
+                    input.rewrite.as_deref(),
                 )
                 .await?;
             }
@@ -174,13 +207,17 @@ impl EmailAuthService for EmailAuthServiceImpl {
             VERIFY_PURPOSE,
             self.config.email_verify_base_url(),
             "Verify your email",
+            input.rewrite.as_deref(),
         )
         .await?;
 
         Ok(EmailActionAccepted { accepted: true })
     }
 
-    async fn resend_verify(&self, input: ResendVerifyInput) -> Result<EmailActionAccepted, sea_orm::DbErr> {
+    async fn resend_verify(
+        &self,
+        input: ResendVerifyInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr> {
         let email = Self::normalize_email(&input.email);
         if let Some(existing) = self.account_emails_repo.find_by_email(&email).await? {
             if existing.verified_at.is_none() {
@@ -189,6 +226,7 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     VERIFY_PURPOSE,
                     self.config.email_verify_base_url(),
                     "Verify your email",
+                    input.rewrite.as_deref(),
                 )
                 .await?;
             }
@@ -222,7 +260,10 @@ impl EmailAuthService for EmailAuthServiceImpl {
         }))
     }
 
-    async fn request_login(&self, input: LoginEmailInput) -> Result<EmailActionAccepted, sea_orm::DbErr> {
+    async fn request_login(
+        &self,
+        input: LoginEmailInput,
+    ) -> Result<EmailActionAccepted, sea_orm::DbErr> {
         let email = Self::normalize_email(&input.email);
         if let Some(existing) = self.account_emails_repo.find_by_email(&email).await? {
             if existing.verified_at.is_some() {
@@ -231,6 +272,7 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     LOGIN_PURPOSE,
                     self.config.email_login_base_url(),
                     "Complete your login",
+                    input.rewrite.as_deref(),
                 )
                 .await?;
             }
@@ -238,7 +280,10 @@ impl EmailAuthService for EmailAuthServiceImpl {
         Ok(EmailActionAccepted { accepted: true })
     }
 
-    async fn complete_login(&self, input: CompleteEmailLoginInput) -> Result<Option<EmailLoginResult>, sea_orm::DbErr> {
+    async fn complete_login(
+        &self,
+        input: CompleteEmailLoginInput,
+    ) -> Result<Option<EmailLoginResult>, sea_orm::DbErr> {
         let Some(record) = self
             .email_tokens_repo
             .find_active_by_token_hash(&input.token, LOGIN_PURPOSE)

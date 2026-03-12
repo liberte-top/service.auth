@@ -1,10 +1,10 @@
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sea_orm_migration::prelude::*;
 
-mod api_keys;
-mod account_scopes;
 mod account_emails;
+mod account_scopes;
 mod accounts;
+mod api_keys;
 mod email_tokens;
 mod route_policies;
 mod route_policy_scopes;
@@ -72,7 +72,6 @@ END $$;
             ),
         ))
         .await?;
-
     }
 
     for table in ["accounts"] {

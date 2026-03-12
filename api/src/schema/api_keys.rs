@@ -32,7 +32,10 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
                         ForeignKey::create()
                             .name("fk_api_keys_account_id")
                             .from(ApiKeys::Table, ApiKeys::AccountId)
-                            .to(super::accounts::Accounts::Table, super::accounts::Accounts::Id)
+                            .to(
+                                super::accounts::Accounts::Table,
+                                super::accounts::Accounts::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

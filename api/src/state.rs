@@ -2,13 +2,13 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::{
-    repo::api_keys::ApiKeysRepo,
-    repo::account_scopes::AccountScopesRepo,
     repo::account_emails::AccountEmailsRepo,
+    repo::account_scopes::AccountScopesRepo,
+    repo::accounts::AccountsRepo,
+    repo::api_keys::ApiKeysRepo,
     repo::email_tokens::EmailTokensRepo,
     repo::route_policies::RoutePoliciesRepo,
     repo::sessions::SessionsRepo,
-    repo::accounts::AccountsRepo,
     service::{
         access::AccessService, accounts::AccountsService, auth_context::AuthContextService,
         config::ConfigService, email_auth::EmailAuthService, mailer::MailerService,
@@ -61,22 +61,27 @@ impl AppState {
     pub async fn new() -> Arc<Self> {
         let db = Arc::new(SeaOrmDatabaseClient::new().await);
         let api_keys_repo = Arc::new(crate::repo::api_keys::SeaOrmApiKeysRepo::new(db.clone()));
-        let account_emails_repo =
-            Arc::new(crate::repo::account_emails::SeaOrmAccountEmailsRepo::new(db.clone()));
+        let account_emails_repo = Arc::new(
+            crate::repo::account_emails::SeaOrmAccountEmailsRepo::new(db.clone()),
+        );
         let email_tokens_repo = Arc::new(crate::repo::email_tokens::SeaOrmEmailTokensRepo::new(
             db.clone(),
         ));
         let accounts_repo = Arc::new(crate::repo::accounts::SeaOrmAccountsRepo::new(db.clone()));
-        let account_scopes_repo =
-            Arc::new(crate::repo::account_scopes::SeaOrmAccountScopesRepo::new(db.clone()));
-        let route_policies_repo =
-            Arc::new(crate::repo::route_policies::SeaOrmRoutePoliciesRepo::new(db.clone()));
+        let account_scopes_repo = Arc::new(
+            crate::repo::account_scopes::SeaOrmAccountScopesRepo::new(db.clone()),
+        );
+        let route_policies_repo = Arc::new(
+            crate::repo::route_policies::SeaOrmRoutePoliciesRepo::new(db.clone()),
+        );
         let sessions_repo = Arc::new(crate::repo::sessions::SeaOrmSessionsRepo::new(db.clone()));
         let accounts = Arc::new(crate::service::accounts::AccountsServiceImpl::new(
             accounts_repo.clone(),
         ));
         let config = Arc::new(crate::service::config::ConfigServiceImpl::new());
-        let mailer = Arc::new(crate::service::mailer::ResendMailerService::new(config.clone()));
+        let mailer = Arc::new(crate::service::mailer::ResendMailerService::new(
+            config.clone(),
+        ));
         let access = Arc::new(crate::service::access::AccessServiceImpl::new(
             config.clone(),
             api_keys_repo.clone(),

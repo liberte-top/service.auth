@@ -11,6 +11,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        profile: resolve(__dirname, "profile.html"),
         health: resolve(__dirname, "health.html"),
         showcase: resolve(__dirname, "showcase.html"),
         notes: resolve(__dirname, "notes.html"),

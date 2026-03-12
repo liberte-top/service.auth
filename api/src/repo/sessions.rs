@@ -6,10 +6,8 @@ use crate::{entities::sessions, state::DatabaseClient};
 
 #[async_trait]
 pub trait SessionsRepo: Send + Sync {
-    async fn insert(
-        &self,
-        model: sessions::ActiveModel,
-    ) -> Result<sessions::Model, sea_orm::DbErr>;
+    async fn insert(&self, model: sessions::ActiveModel)
+        -> Result<sessions::Model, sea_orm::DbErr>;
     async fn find_active_by_token_hash(
         &self,
         token_hash: &str,

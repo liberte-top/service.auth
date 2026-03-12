@@ -15,7 +15,11 @@ pub async fn apply(manager: &SchemaManager<'_>, conn: &DatabaseConnection) -> Re
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(EmailTokens::AccountEmailId).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(EmailTokens::AccountEmailId)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(EmailTokens::Purpose).string().not_null())
                     .col(ColumnDef::new(EmailTokens::TokenHash).string().not_null())
                     .col(

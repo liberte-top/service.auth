@@ -1,213 +1,195 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { createAccount, getAccount, getHealth, type AccountPayload, type AccountResponse } from "../openapi/client";
   import { apiClient } from "../openapi/http";
 
-  const envLabel = import.meta.env.VITE_ENV_LABEL ?? "local";
+  type Mode = "login" | "register";
 
-  let healthText = "loading";
-  let healthOk = false;
+  type AuthContext = {
+    authenticated?: boolean;
+    subject?: string | null;
+    auth_type?: string | null;
+    scopes?: string[];
+  };
+
+  const profileUrl = "/profile.html";
+
+  let mode: Mode = "login";
+  let email = "";
+  let displayName = "";
   let busy = false;
-  let createError = "";
-  let created: AccountResponse | null = null;
-  let fetched: AccountResponse | null = null;
-  let authBusy = false;
-  let authEmail = "demo-auth@example.com";
-  let authDisplayName = "Demo Auth";
-  let authStatus = "idle";
-  let authResult = "";
-  let authContext = "";
+  let bannerTone: "info" | "success" | "error" = "info";
+  let banner = "";
+  let rewrite = "";
 
-  let accountType = "user";
-  let username = "demo-user";
-  let email = "demo@example.com";
-
-  onMount(async () => {
+  function sanitizeRewrite(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("/")) return trimmed;
     try {
-      const health = await getHealth();
-      healthText = health.status;
-      healthOk = health.status === "ok";
+      const url = new URL(trimmed);
+      return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
     } catch {
-      healthText = "unreachable";
-      healthOk = false;
-    }
-
-    await refreshAuthContext();
-  });
-
-  async function postJson(path: string, payload: Record<string, unknown>) {
-    const response = await apiClient.post(path, payload, {
-      validateStatus: () => true,
-    });
-    return {
-      ok: response.status >= 200 && response.status < 300,
-      status: response.status,
-      text: typeof response.data === "string" ? response.data : JSON.stringify(response.data),
-    };
-  }
-
-  async function refreshAuthContext() {
-    const response = await apiClient.get("/api/v1/context");
-    const data = response.data;
-    authContext = typeof data === "string"
-      ? data
-      : data?.authenticated === false
-        ? "signed out"
-        : JSON.stringify(data);
-  }
-
-  async function runAuthAction(label: string, path: string, payload: Record<string, unknown>) {
-    authBusy = true;
-    authStatus = `${label}...`;
-    authResult = "";
-
-    try {
-      const result = await postJson(path, payload);
-      authStatus = `${label} ${result.ok ? "accepted" : "failed"}`;
-      authResult = `HTTP ${result.status}\n${result.text}`;
-      await refreshAuthContext();
-    } catch (error) {
-      authStatus = `${label} failed`;
-      authResult = error instanceof Error ? error.message : "request failed";
-    } finally {
-      authBusy = false;
+      return "";
     }
   }
 
-  async function runCreateAndRead() {
+  function preferredRedirectTarget() {
+    return rewrite || profileUrl;
+  }
+
+  function resolveRewrite() {
+    const url = new URL(window.location.href);
+    return sanitizeRewrite(url.searchParams.get("rewrite") || url.searchParams.get("return_to") || "");
+  }
+
+  function applyQueryState() {
+    const url = new URL(window.location.href);
+    const requestedMode = url.searchParams.get("mode");
+    const verified = url.searchParams.get("verified") === "1";
+    const queryEmail = url.searchParams.get("email") || "";
+
+    if (requestedMode === "login" || requestedMode === "register") {
+      mode = requestedMode;
+    }
+    if (queryEmail) {
+      email = queryEmail;
+    }
+    if (verified) {
+      bannerTone = "success";
+      banner = rewrite
+        ? "Email verified. Request your login link to continue back to your destination."
+        : "Email verified. Request your login link to continue to your profile.";
+      mode = "login";
+    }
+  }
+
+  async function loadContext() {
+    const response = await apiClient.get<AuthContext>("/api/v1/context");
+    return response.data;
+  }
+
+  async function submit(path: string, payload: Record<string, unknown>, successMessage: string) {
     busy = true;
-    createError = "";
-    created = null;
-    fetched = null;
-
     try {
-      const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-      const payload: AccountPayload = {
-        account_type: accountType,
-        username: (username ? `${username}-${suffix}` : null),
-        email: (email ? `${suffix}-${email}` : null),
-        phone: null,
-        created_by: null,
-      };
-      const createResult = await createAccount(payload);
-      created = createResult;
-      fetched = await getAccount(createResult.uid);
+      const response = await apiClient.post(path, payload, { validateStatus: () => true });
+      if (response.status >= 200 && response.status < 300) {
+        bannerTone = "success";
+        banner = successMessage;
+        return;
+      }
+      bannerTone = "error";
+      banner = `Request failed with HTTP ${response.status}.`;
     } catch (error) {
-      createError = error instanceof Error ? error.message : "request failed";
+      bannerTone = "error";
+      banner = error instanceof Error ? error.message : "Request failed.";
     } finally {
       busy = false;
     }
   }
 
-  async function runRegister() {
-    await runAuthAction("register", "/api/v1/auth/register/email", {
-      email: authEmail,
-      display_name: authDisplayName || null,
-    });
+  async function requestRegistration() {
+    await submit(
+      "/api/v1/auth/register/email",
+      {
+        email,
+        display_name: displayName || null,
+        rewrite: rewrite || null,
+      },
+      "Check your inbox for the verification link."
+    );
   }
 
-  async function runResendVerify() {
-    await runAuthAction("resend verify", "/api/v1/auth/verify/email/resend", {
-      email: authEmail,
-    });
+  async function resendVerification() {
+    await submit(
+      "/api/v1/auth/verify/email/resend",
+      {
+        email,
+        rewrite: rewrite || null,
+      },
+      "A fresh verification link is on the way."
+    );
   }
 
-  async function runRequestLogin() {
-    await runAuthAction("request login", "/api/v1/auth/login/email", {
-      email: authEmail,
-    });
+  async function requestLogin() {
+    await submit(
+      "/api/v1/auth/login/email",
+      {
+        email,
+        rewrite: rewrite || null,
+      },
+      rewrite
+        ? "Check your inbox for the sign-in link back to your destination."
+        : "Check your inbox for the sign-in link to your profile."
+    );
   }
+
+  onMount(async () => {
+    rewrite = resolveRewrite();
+    applyQueryState();
+
+    try {
+      const context = await loadContext();
+      if (context.authenticated) {
+        window.location.assign(preferredRedirectTarget());
+      }
+    } catch {
+      bannerTone = "error";
+      banner = "Auth context is currently unavailable.";
+    }
+  });
 </script>
 
-<main>
-  <section class="card">
-    <h1>service.auth web</h1>
-    <nav class="nav">
-      <a href="/">Home</a>
-      <a href="/health.html">Health page</a>
-      <a href="/showcase.html">Showcase page</a>
-      <a href="/notes.html">Notes page</a>
-    </nav>
-    <p>Environment: <strong>{envLabel}</strong></p>
-    <p>
-      API health:
-      <strong class={healthOk ? "status-ok" : "status-fail"}>{healthText}</strong>
+<main class="shell">
+  <section class="hero card">
+    <p class="eyebrow">liberte.top auth</p>
+    <h1>Register once, sign in by email, and continue where you meant to go.</h1>
+    <p class="lede">
+      {#if rewrite}
+        You are signing in for <code>{rewrite}</code>.
+      {:else}
+        This is the standard entrypoint for account registration and sign-in.
+      {/if}
     </p>
   </section>
 
-  <section class="card">
-    <h2>Email auth flow</h2>
-    <p>Start registration or request a sign-in link here, then complete the flow from the email link.</p>
-
-    <label>
-      auth email
-      <input bind:value={authEmail} />
-    </label>
-    <label>
-      display name
-      <input bind:value={authDisplayName} />
-    </label>
-
-    <div class="actions">
-      <button disabled={authBusy} on:click={runRegister}>register email</button>
-      <button disabled={authBusy} on:click={runResendVerify}>resend verify link</button>
-      <button disabled={authBusy} on:click={runRequestLogin}>request login link</button>
-      <button disabled={authBusy} on:click={refreshAuthContext}>refresh session</button>
+  <section class="card auth-card">
+    <div class="mode-switch" role="tablist" aria-label="Auth mode">
+      <button class:active={mode === "login"} on:click={() => (mode = "login")}>Sign in</button>
+      <button class:active={mode === "register"} on:click={() => (mode = "register")}>Register</button>
     </div>
 
-    <p>
-      Status:
-      <strong>{authStatus}</strong>
+    {#if banner}
+      <p class={`banner ${bannerTone}`}>{banner}</p>
+    {/if}
+
+    <label>
+      Email
+      <input bind:value={email} type="email" autocomplete="email" placeholder="you@example.com" />
+    </label>
+
+    {#if mode === "register"}
+      <label>
+        Display name
+        <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
+      </label>
+    {/if}
+
+    <div class="actions">
+      {#if mode === "register"}
+        <button disabled={busy || !email} on:click={requestRegistration}>
+          {busy ? "Sending..." : "Send verification email"}
+        </button>
+        <button class="secondary" disabled={busy || !email} on:click={resendVerification}>Resend verification</button>
+      {:else}
+        <button disabled={busy || !email} on:click={requestLogin}>
+          {busy ? "Sending..." : "Send sign-in link"}
+        </button>
+      {/if}
+    </div>
+
+    <p class="hint">
+      After you complete email verification and sign-in, we redirect using <code>rewrite</code> first and
+      your profile second.
     </p>
-
-    {#if authResult}
-      <pre>{authResult}</pre>
-    {/if}
-
-    <p>Current auth context</p>
-    <pre>{authContext}</pre>
-  </section>
-
-  <section class="card">
-    <h2>Accounts CRUD demo</h2>
-    <label>
-      account_type
-      <input bind:value={accountType} />
-    </label>
-    <label>
-      username
-      <input bind:value={username} />
-    </label>
-    <label>
-      email
-      <input bind:value={email} />
-    </label>
-
-    <button disabled={busy} on:click={runCreateAndRead}>
-      {busy ? "Processing..." : "Create + Read account"}
-    </button>
-
-    {#if createError}
-      <p class="status-fail">{createError}</p>
-    {/if}
-
-    {#if created}
-      <p>Created account uid: <code>{created.uid}</code></p>
-      <pre>{JSON.stringify(created, null, 2)}</pre>
-    {/if}
-
-    {#if fetched}
-      <p>Fetched account</p>
-      <pre>{JSON.stringify(fetched, null, 2)}</pre>
-    {/if}
   </section>
 </main>
-
-<style>
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-</style>
