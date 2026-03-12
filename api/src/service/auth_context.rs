@@ -54,35 +54,54 @@ impl AuthContextServiceImpl {
         }
     }
 
-    async fn session_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {
+    fn session_tokens_from_headers(&self, headers: &HeaderMap) -> Vec<String> {
         let cookie_name = self.config.forwardauth_session_cookie_name();
-        let token = headers
+        headers
             .get(header::COOKIE)
             .and_then(|raw| raw.to_str().ok())
-            .and_then(|cookie_header| {
-                cookie_header.split(';').find_map(|part| {
-                    let trimmed = part.trim();
-                    let prefix = format!("{cookie_name}=");
-                    trimmed.strip_prefix(prefix.as_str()).map(ToOwned::to_owned)
-                })
+            .map(|cookie_header| {
+                cookie_header
+                    .split(';')
+                    .filter_map(|part| {
+                        let trimmed = part.trim();
+                        let prefix = format!("{cookie_name}=");
+                        trimmed
+                            .strip_prefix(prefix.as_str())
+                            .map(str::trim)
+                            .filter(|value| !value.is_empty())
+                            .map(ToOwned::to_owned)
+                    })
+                    .collect()
             })
-            .filter(|value| !value.is_empty())?;
+            .unwrap_or_default()
+    }
 
-        let session = self
-            .sessions_repo
-            .find_active_by_token_hash(&token)
-            .await
-            .ok()
-            .flatten()?;
+    async fn session_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {
+        for token in self.session_tokens_from_headers(headers) {
+            let Some(session) = self
+                .sessions_repo
+                .find_active_by_token_hash(&token)
+                .await
+                .ok()
+                .flatten()
+            else {
+                continue;
+            };
 
-        let account = self
-            .accounts_repo
-            .find_by_id(session.account_id)
-            .await
-            .ok()
-            .flatten()?;
+            let Some(account) = self
+                .accounts_repo
+                .find_by_id(session.account_id)
+                .await
+                .ok()
+                .flatten()
+            else {
+                continue;
+            };
 
-        Some((account.id, account.uid.to_string()))
+            return Some((account.id, account.uid.to_string()));
+        }
+
+        None
     }
 }
 
