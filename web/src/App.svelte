@@ -19,6 +19,7 @@
   let email = "";
   let displayName = "";
   let busy = false;
+  let registrationRequested = false;
   let bannerTone: "info" | "success" | "error" = "info";
   let banner = "";
   let rewrite = "";
@@ -30,6 +31,11 @@
     : "Create your account with email, then verify it to continue.";
   $: primaryLabel = mode === "login" ? "Send sign-in link" : "Create account";
   $: preferredRedirectTarget = rewrite || profileUrl;
+  $: pageTitle = `${mode === "login" ? "Sign in" : "Create account"} - Liberte`;
+
+  $: if (typeof document !== "undefined") {
+    document.title = pageTitle;
+  }
 
   function sanitizeRewrite(value: string) {
     const trimmed = value.trim();
@@ -98,6 +104,7 @@
   }
 
   async function requestRegistration() {
+    registrationRequested = false;
     await submit(
       "/api/v1/auth/register/email",
       {
@@ -107,6 +114,9 @@
       },
       "Check your inbox for the verification email."
     );
+    if (bannerTone === "success") {
+      registrationRequested = true;
+    }
   }
 
   async function resendVerification() {
@@ -139,19 +149,14 @@
 </script>
 
 <main class="page auth-page">
-  <section class="auth-wrap">
-    <div class="auth-brand">
-      <a class="brand-mark" href="/">liberte.top</a>
-      <h1>Account</h1>
-      <p>Simple email sign-in for auth.liberte.top.</p>
-    </div>
+  <section class="stack auth-stack">
+    <a class="brand-link" href="/">liberte.top</a>
 
     {#if authContext.authenticated}
-      <section class="card session-card-simple">
-        <div>
-          <p class="section-label">Signed in</p>
-          <h2>{authContext.email || "Your account is active"}</h2>
-          <p class="muted">You already have an active session in this browser.</p>
+      <section class="card auth-card-shell status-card">
+        <div class="card-header">
+          <h1>You're already signed in</h1>
+          <p>{authContext.email || "Your account session is active in this browser."}</p>
         </div>
 
         <div class="actions compact-actions">
@@ -159,66 +164,53 @@
           <a class="button-link secondary-link" href={logoutUrl}>Log out</a>
         </div>
       </section>
-    {/if}
+    {:else}
+      <section class="card auth-card-shell">
+        <div class="card-header">
+          <h1>{modeTitle}</h1>
+          <p>{modeSummary}</p>
+        </div>
 
-    <section class="card auth-card-clean">
-      <div class="mode-switch" role="tablist" aria-label="Auth mode">
-        <button class:active={mode === "login"} on:click={() => (mode = "login")}>Sign in</button>
-        <button class:active={mode === "register"} on:click={() => (mode = "register")}>Register</button>
-      </div>
+        {#if banner}
+          <p class={`banner ${bannerTone}`}>{banner}</p>
+        {/if}
 
-      <div class="form-header">
-        <h2>{modeTitle}</h2>
-        <p>{modeSummary}</p>
-      </div>
-
-      {#if banner}
-        <p class={`banner ${bannerTone}`}>{banner}</p>
-      {/if}
-
-      <div class="form-fields">
-        <label>
-          Email
-          <input bind:value={email} type="email" autocomplete="email" placeholder="you@example.com" />
-        </label>
-
-        {#if mode === "register"}
+        <form class="form-fields" on:submit|preventDefault={mode === "login" ? requestLogin : requestRegistration}>
           <label>
-            Name
-            <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
+            Email address
+            <input bind:value={email} type="email" autocomplete="email" placeholder="you@example.com" />
           </label>
-        {/if}
-      </div>
 
-      <div class="actions form-actions">
-        <button disabled={busy || !email} on:click={mode === "login" ? requestLogin : requestRegistration}>
-          {busy ? "Sending..." : primaryLabel}
-        </button>
-        {#if mode === "register"}
-          <button class="secondary" disabled={busy || !email} on:click={resendVerification}>Resend verification</button>
-        {/if}
-      </div>
+          {#if mode === "register"}
+            <label>
+              Name
+              <input bind:value={displayName} autocomplete="name" placeholder="Optional" />
+            </label>
+          {/if}
 
-      <p class="form-note">
+          <button type="submit" disabled={busy || !email}>
+            {busy ? "Sending..." : primaryLabel}
+          </button>
+
+          {#if mode === "register" && registrationRequested}
+            <button class="secondary" type="button" disabled={busy || !email} on:click={resendVerification}>Resend verification</button>
+          {/if}
+        </form>
+      </section>
+
+      <p class="switch-copy">
         {#if mode === "login"}
-          New here?
-          <button class="inline-action" on:click={() => (mode = "register")}>Create an account</button>
+          New to Liberte?
+          <button class="inline-action" type="button" on:click={() => (mode = "register")}>Create an account</button>
         {:else}
-          Already verified?
-          <button class="inline-action" on:click={() => (mode = "login")}>Sign in instead</button>
+          Already have an account?
+          <button class="inline-action" type="button" on:click={() => (mode = "login")}>Sign in</button>
         {/if}
       </p>
-    </section>
 
-    <section class="auth-footer">
-      <div>
-        <p class="section-label">How it works</p>
-        <p class="muted">Enter your email, open the link we send, and continue to your destination.</p>
-      </div>
-      <div>
-        <p class="section-label">After sign-in</p>
-        <p class="muted">If no destination is provided, we send you to your profile page.</p>
-      </div>
-    </section>
+      <p class="support-copy">
+        We email a one-time link to continue. {rewrite ? "After sign-in, you'll return to your original destination." : "If no destination is provided, you'll land on your profile page."}
+      </p>
+    {/if}
   </section>
 </main>

@@ -99,10 +99,26 @@
     }
   }
 
+  function titleFor(currentStep: FlowStep) {
+    switch (currentStep) {
+      case "verify-success":
+        return "Email verified - Liberte";
+      case "verify-invalid":
+        return "Verification link expired - Liberte";
+      case "login-success":
+        return "Signed in - Liberte";
+      case "login-invalid":
+        return "Sign-in link expired - Liberte";
+    }
+  }
+
   $: config = configFor(step);
   $: safeRewrite = rewrite || "/profile.html";
   $: destinationLabel = step === "login-success" ? next : safeRewrite;
   $: primaryHref = next || HOME_URL;
+  $: if (typeof document !== "undefined") {
+    document.title = titleFor(step);
+  }
 
   onMount(() => {
     const url = new URL(window.location.href);
@@ -136,91 +152,40 @@
   });
 </script>
 
-<main class="shell">
-  <section class="hero-layout flow-layout">
-    <section class="hero hero-card card">
-      <p class="eyebrow">{config.eyebrow}</p>
-      <h1>{config.title}</h1>
-      <p class="lede">{config.lede}</p>
+<main class="page auth-page">
+  <section class="flow-shell">
+    <a class="brand-link" href="/">liberte.top</a>
 
-      <p class={`banner ${config.tone} flow-banner`}>
+    <section class="card flow-card">
+      <div class="card-header">
+        <p class="section-label">{config.eyebrow}</p>
+        <h1>{config.title}</h1>
+        <p>{config.lede}</p>
+      </div>
+
+      <p class={`banner ${config.tone}`}>
         {#if config.autoRedirect}
-          Redirecting in {countdown}s.
+          Redirecting in {countdown} seconds.
         {:else}
-          You can recover by starting the flow again from auth home.
+          Return to the sign-in page to request a fresh email.
         {/if}
       </p>
 
-      <div class="hero-footnote flow-metrics">
-        <div class="metric-chip">
-          <span class="metric-label">Current step</span>
-          <strong>{step}</strong>
-        </div>
-        <div class="metric-chip">
-          <span class="metric-label">Email</span>
-          <strong>{email || "Not available"}</strong>
-        </div>
-        <div class="metric-chip">
-          <span class="metric-label">Destination</span>
-          <strong>{destinationLabel}</strong>
-        </div>
+      <div class="actions">
+        <a class="button-link" href={primaryHref}>{config.primaryLabel}</a>
+        <a class="button-link secondary-link" href={HOME_URL}>{config.fallbackLabel}</a>
+      </div>
+
+      <div class="flow-meta">
+        <p class="flow-copy">
+          {#if email}
+            Email: <strong>{email}</strong>
+          {/if}
+        </p>
+        <p class="flow-copy">
+          Destination: <code>{destinationLabel}</code>
+        </p>
       </div>
     </section>
-
-    <aside class="hero-sidebar">
-      <section class="card accent-card">
-        <p class="eyebrow">Flow state</p>
-        <p class="destination-copy">
-          {#if step === "verify-success"}
-            Verification is finished and the next step is requesting a sign-in link.
-          {:else if step === "login-success"}
-            Your auth session is already active in this browser.
-          {:else}
-            The email action could not be completed, so you need a fresh link.
-          {/if}
-        </p>
-        <p class="destination-chip"><code>{destinationLabel}</code></p>
-      </section>
-
-      <section class="card info-card">
-        <p class="eyebrow">Recovery notes</p>
-        <ul class="info-list">
-          {#each config.notes as note}
-            <li>{note}</li>
-          {/each}
-        </ul>
-      </section>
-    </aside>
-  </section>
-
-  <section class="card auth-card flow-actions-card">
-    <div class="auth-shell flow-actions-shell">
-      <div class="auth-copy">
-        <p class="eyebrow">Next action</p>
-        <h2>{config.primaryLabel}</h2>
-        <p class="auth-summary">
-          {#if step === "verify-success"}
-            Continue to the auth home with the verified email prefilled so the next step is one click away.
-          {:else if step === "login-success"}
-            Continue to the destination that requested authentication.
-          {:else}
-            Open auth home and request a replacement email from the current flow state.
-          {/if}
-        </p>
-      </div>
-
-      <div class="auth-form-block flow-action-panel">
-        <div class="actions auth-actions">
-          <a class="button-link" href={primaryHref}>{config.primaryLabel}</a>
-          <a class="button-link secondary-link" href={HOME_URL}>{config.fallbackLabel}</a>
-        </div>
-
-        {#if config.autoRedirect}
-          <p class="helper-copy">If the automatic redirect does not fire, use the primary action button above.</p>
-        {:else}
-          <p class="helper-copy">If you still have the original tab open, return there and resend the latest email action.</p>
-        {/if}
-      </div>
-    </div>
   </section>
 </main>

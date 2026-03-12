@@ -5,6 +5,10 @@
   let busy = true;
   let error = "";
 
+  $: if (typeof document !== "undefined") {
+    document.title = error ? "Logout error - Liberte" : busy ? "Signing out - Liberte" : "Signed out - Liberte";
+  }
+
   async function logout() {
     busy = true;
     error = "";

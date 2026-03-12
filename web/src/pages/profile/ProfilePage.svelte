@@ -10,6 +10,10 @@
   let context: AuthContext | null = null;
   let error = "";
 
+  if (typeof document !== "undefined") {
+    document.title = "Profile - Liberte";
+  }
+
   onMount(async () => {
     try {
       const response = await apiClient.get<AuthContext>("/api/v1/context");
