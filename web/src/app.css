@@ -65,7 +65,7 @@ code {
 
 .hero-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.7fr) minmax(260px, 0.7fr);
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -101,6 +101,54 @@ code {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.session-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.session-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.session-pill {
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid #d6e2dc;
+  background: #eef3f0;
+  color: #5d726b;
+  font-size: 0.82rem;
+}
+
+.session-pill.online {
+  background: #dff2e4;
+  color: #215f35;
+  border-color: rgba(33, 95, 53, 0.18);
+}
+
+.session-grid {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.session-grid dt {
+  font-size: 0.8rem;
+  color: #5b756d;
+  margin-bottom: 0.2rem;
+}
+
+.session-grid dd {
+  margin: 0;
+}
+
+.session-actions {
+  margin-top: auto;
 }
 
 .destination-chip {

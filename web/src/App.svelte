@@ -20,6 +20,7 @@
   let bannerTone: "info" | "success" | "error" = "info";
   let banner = "";
   let rewrite = "";
+  let authContext: AuthContext = { authenticated: false, subject: null, auth_type: null, scopes: [] };
 
   $: modeTitle = mode === "login" ? "Sign in with email" : "Create your account";
   $: modeSummary = mode === "login"
@@ -72,6 +73,10 @@
   async function loadContext() {
     const response = await apiClient.get<AuthContext>("/api/v1/context");
     return response.data;
+  }
+
+  function signedInSummary() {
+    return authContext.subject ? `${authContext.subject.slice(0, 8)}...` : "anonymous";
   }
 
   async function submit(path: string, payload: Record<string, unknown>, successMessage: string) {
@@ -135,8 +140,12 @@
 
     try {
       const context = await loadContext();
+      authContext = context;
       if (context.authenticated) {
-        window.location.assign(preferredRedirectTarget());
+        bannerTone = "success";
+        banner = rewrite
+          ? "You already have an active session. Continue to your destination whenever you are ready."
+          : "You already have an active session. Continue to your profile whenever you are ready.";
       }
     } catch {
       bannerTone = "error";
@@ -175,6 +184,37 @@
         <p class="destination-chip"><code>{rewrite}</code></p>
       {:else}
         <p class="destination-copy">No rewrite target was provided. Successful login falls back to your profile page.</p>
+      {/if}
+    </section>
+
+    <section class="card session-card">
+      <p class="eyebrow">Current session</p>
+      <div class="session-status-row">
+        <strong>{authContext.authenticated ? "Signed in" : "Signed out"}</strong>
+        <span class:online={authContext.authenticated} class="session-pill">{authContext.authenticated ? "active" : "idle"}</span>
+      </div>
+
+      {#if authContext.authenticated}
+        <dl class="session-grid">
+          <div>
+            <dt>Subject</dt>
+            <dd><code>{signedInSummary()}</code></dd>
+          </div>
+          <div>
+            <dt>Auth type</dt>
+            <dd>{authContext.auth_type}</dd>
+          </div>
+          <div>
+            <dt>Scopes</dt>
+            <dd>{authContext.scopes?.join(", ") || "none"}</dd>
+          </div>
+        </dl>
+        <div class="actions session-actions">
+          <a class="button-link" href={preferredRedirectTarget()}>{rewrite ? "Continue" : "Open profile"}</a>
+          <a class="button-link secondary-link" href="https://smoke.liberte.top/">Open smoke app</a>
+        </div>
+      {:else}
+        <p class="destination-copy">No active auth session is present in this browser yet.</p>
       {/if}
     </section>
   </section>
