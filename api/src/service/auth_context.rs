@@ -144,12 +144,23 @@ impl AuthContextService for AuthContextServiceImpl {
 }
 
 impl AuthContextServiceImpl {
+    fn default_browser_scopes() -> Vec<String> {
+        vec!["notes:read".to_owned(), "profile:read".to_owned()]
+    }
+
     async fn resolve_scopes(&self, account_id: i64) -> Vec<String> {
         self.account_scopes_repo
             .list_by_account_id(account_id)
             .await
-            .map(|items| items.into_iter().map(|item| item.scope_name).collect())
-            .unwrap_or_else(|_| vec!["notes:read".to_owned(), "profile:read".to_owned()])
+            .map(|items| {
+                let scopes = items.into_iter().map(|item| item.scope_name).collect::<Vec<_>>();
+                if scopes.is_empty() {
+                    Self::default_browser_scopes()
+                } else {
+                    scopes
+                }
+            })
+            .unwrap_or_else(|_| Self::default_browser_scopes())
     }
 
     async fn api_key_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {
