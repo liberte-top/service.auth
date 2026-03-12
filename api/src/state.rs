@@ -94,6 +94,7 @@ impl AppState {
             config.clone(),
             api_keys_repo.clone(),
             accounts_repo.clone(),
+            account_emails_repo.clone(),
             account_scopes_repo.clone(),
             sessions_repo.clone(),
         ));

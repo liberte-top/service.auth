@@ -56,6 +56,19 @@ fn session_cookie_value(state: &AppState, session_token: &str) -> String {
     )
 }
 
+fn expired_session_cookie_value(state: &AppState) -> String {
+    let domain = state
+        .config()
+        .forwardauth_session_cookie_domain()
+        .map(|value| format!("; Domain={value}"))
+        .unwrap_or_default();
+    format!(
+        "{}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT{}",
+        state.config().forwardauth_session_cookie_name(),
+        domain
+    )
+}
+
 fn profile_url(state: &AppState) -> String {
     Url::parse(state.config().forwardauth_login_url())
         .ok()
@@ -359,6 +372,23 @@ pub async fn complete_email_login_link(
     Ok(response)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/logout",
+    responses((status = 204, description = "Session cookie cleared")),
+    tag = "auth"
+)]
+pub async fn logout(State(state): State<Arc<AppState>>) -> Result<impl IntoResponse, StatusCode> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&expired_session_cookie_value(&state))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    );
+
+    Ok((StatusCode::NO_CONTENT, headers))
+}
+
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/v1/auth/context", get(context))
@@ -370,6 +400,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         )
         .route("/api/v1/auth/verify/email", get(verify_email))
         .route("/api/v1/auth/login/email", post(request_email_login))
+        .route("/api/v1/auth/logout", post(logout))
         .route(
             "/api/v1/auth/login/email/complete",
             get(complete_email_login_link).post(complete_email_login),

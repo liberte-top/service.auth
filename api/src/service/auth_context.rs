@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
+use crate::repo::account_emails::AccountEmailsRepo;
 use crate::repo::api_keys::ApiKeysRepo;
 use crate::repo::sessions::SessionsRepo;
 use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
@@ -18,6 +19,7 @@ use super::config::ConfigService;
 pub struct AuthContextResponse {
     pub authenticated: bool,
     pub subject: Option<String>,
+    pub email: Option<String>,
     pub auth_type: Option<String>,
     pub scopes: Vec<String>,
 }
@@ -31,6 +33,7 @@ pub struct AuthContextServiceImpl {
     config: Arc<dyn ConfigService>,
     api_keys_repo: Arc<dyn ApiKeysRepo>,
     accounts_repo: Arc<dyn AccountsRepo>,
+    account_emails_repo: Arc<dyn AccountEmailsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     sessions_repo: Arc<dyn SessionsRepo>,
 }
@@ -40,6 +43,7 @@ impl AuthContextServiceImpl {
         config: Arc<dyn ConfigService>,
         api_keys_repo: Arc<dyn ApiKeysRepo>,
         accounts_repo: Arc<dyn AccountsRepo>,
+        account_emails_repo: Arc<dyn AccountEmailsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
         sessions_repo: Arc<dyn SessionsRepo>,
     ) -> Self {
@@ -47,6 +51,7 @@ impl AuthContextServiceImpl {
             config,
             api_keys_repo,
             accounts_repo,
+            account_emails_repo,
             account_scopes_repo,
             sessions_repo,
         }
@@ -100,9 +105,11 @@ impl AuthContextService for AuthContextServiceImpl {
             let (account_id, subject) =
                 identity.unwrap_or((0, "00000000-0000-0000-0000-000000000000".to_owned()));
             let scopes = self.resolve_scopes(account_id).await;
+            let email = self.resolve_primary_email(account_id).await;
             Json(AuthContextResponse {
                 authenticated: true,
                 subject: Some(subject),
+                email,
                 auth_type: Some(if api_key_identity.is_some() {
                     "api_key".to_owned()
                 } else {
@@ -115,6 +122,7 @@ impl AuthContextService for AuthContextServiceImpl {
             Json(AuthContextResponse {
                 authenticated: false,
                 subject: None,
+                email: None,
                 auth_type: None,
                 scopes: Vec::new(),
             })
@@ -148,7 +156,10 @@ impl AuthContextServiceImpl {
             .list_by_account_id(account_id)
             .await
             .map(|items| {
-                let scopes = items.into_iter().map(|item| item.scope_name).collect::<Vec<_>>();
+                let scopes = items
+                    .into_iter()
+                    .map(|item| item.scope_name)
+                    .collect::<Vec<_>>();
                 if scopes.is_empty() {
                     Self::default_browser_scopes()
                 } else {
@@ -156,6 +167,15 @@ impl AuthContextServiceImpl {
                 }
             })
             .unwrap_or_else(|_| Self::default_browser_scopes())
+    }
+
+    async fn resolve_primary_email(&self, account_id: i64) -> Option<String> {
+        self.account_emails_repo
+            .find_primary_by_account_id(account_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|item| item.email_normalized)
     }
 
     async fn api_key_identity(&self, headers: &HeaderMap) -> Option<(i64, String)> {

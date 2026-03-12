@@ -13,6 +13,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         flow: resolve(__dirname, "flow.html"),
         profile: resolve(__dirname, "profile.html"),
+        logout: resolve(__dirname, "logout.html"),
         health: resolve(__dirname, "health.html"),
         showcase: resolve(__dirname, "showcase.html"),
         notes: resolve(__dirname, "notes.html"),
