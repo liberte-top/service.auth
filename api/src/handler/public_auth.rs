@@ -72,9 +72,9 @@ fn expired_session_cookie_value(state: &AppState) -> String {
 fn profile_url(state: &AppState) -> String {
     Url::parse(state.config().forwardauth_login_url())
         .ok()
-        .and_then(|base| base.join("profile.html").ok())
+        .and_then(|base| base.join("profile").ok())
         .map(Into::into)
-        .unwrap_or_else(|| "https://auth.liberte.top/profile.html".to_owned())
+        .unwrap_or_else(|| "https://auth.liberte.top/profile".to_owned())
 }
 
 fn sanitized_rewrite(rewrite: Option<&str>) -> Option<String> {
@@ -130,8 +130,8 @@ fn flow_page_url(
 ) -> String {
     let mut url = Url::parse(state.config().forwardauth_login_url())
         .ok()
-        .and_then(|base| base.join("flow.html").ok())
-        .unwrap_or_else(|| Url::parse("https://auth.liberte.top/flow.html").unwrap());
+        .and_then(|base| base.join("flow").ok())
+        .unwrap_or_else(|| Url::parse("https://auth.liberte.top/flow").unwrap());
     {
         let mut query = url.query_pairs_mut();
         query.append_pair("step", step);

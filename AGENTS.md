@@ -25,7 +25,7 @@ service.auth/
 │   ├── tests/
 │   ├── Dockerfile
 │   └── Cargo.toml
-├── web/                      # Vite + Svelte frontend (MPA)
+├── web/                      # SvelteKit SSR frontend
 │   ├── src/
 │   ├── openapi/
 │   ├── docker/

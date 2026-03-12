@@ -35,6 +35,8 @@ services:
       dockerfile: service.auth/web/Dockerfile
       args:
         VITE_ENV_LABEL: ${WEB_VITE_ENV_LABEL:-compose}
+    environment:
+      AUTH_API_INTERNAL_URL: http://auth-api:3333
     ports:
       - "${WEB_PUBLIC_PORT:-5173}:80"
     depends_on:

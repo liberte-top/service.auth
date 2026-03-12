@@ -1,6 +1,6 @@
 # service.auth web
 
-Vite + Svelte frontend for `service.auth`.
+SvelteKit SSR frontend for `service.auth`.
 
 ## Run
 
@@ -9,13 +9,15 @@ pnpm install
 pnpm dev
 ```
 
-Env vars:
+## Environment
 
-- `VITE_AUTH_API_BASE_URL` (default `http://localhost:3333`)
-- `VITE_ENV_LABEL` (default `local`)
+- `AUTH_API_INTERNAL_URL` - server-side origin used by the SvelteKit Node process to reach the auth API
+- `WEB_VITE_AUTH_API_BASE_URL` - optional fallback for server-side API origin resolution
+- `VITE_ENV_LABEL` - build label for metadata
 
 ## Build
 
 ```bash
 pnpm build
+pnpm start
 ```
