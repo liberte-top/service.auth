@@ -5,4 +5,4 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-<AuthPage mode="register" authContext={data.authContext} email={data.email} rewrite={data.rewrite} verified={data.verified} canonical={data.canonical} primaryAction="?/register" resendAction="?/resend" {form} />
+<AuthPage mode="register" authContext={data.authContext} email={data.email} rewrite={data.rewrite} verified={data.verified} canonical={data.canonical} language={data.language} primaryAction="?/register" resendAction="?/resend" {form} />

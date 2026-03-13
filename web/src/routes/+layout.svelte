@@ -2,8 +2,11 @@
   import "../app.css";
 
   import type { LayoutData } from "./$types";
+  import { setContext } from "svelte";
 
   export let data: LayoutData;
+
+  setContext("liberte-language", data.language);
 </script>
 
 <svelte:head>

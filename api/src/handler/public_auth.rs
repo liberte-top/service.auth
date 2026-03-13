@@ -18,6 +18,23 @@ use crate::{
     state::AppState,
 };
 
+const LIBERTE_LANGUAGE_HEADER: &str = "x-liberte-language";
+
+fn normalize_language(value: Option<&str>) -> &'static str {
+    match value.unwrap_or("en").trim().to_ascii_lowercase().as_str() {
+        "zh" | "zh-cn" => "zh-CN",
+        _ => "en",
+    }
+}
+
+fn request_language(headers: &HeaderMap) -> &'static str {
+    normalize_language(
+        headers
+            .get(LIBERTE_LANGUAGE_HEADER)
+            .and_then(|value| value.to_str().ok()),
+    )
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct RegisterEmailRequest {
     pub email: String,
@@ -175,6 +192,7 @@ pub async fn context(
 )]
 pub async fn register_email(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<RegisterEmailRequest>,
 ) -> Result<(StatusCode, Json<EmailActionAccepted>), StatusCode> {
     let result = state
@@ -183,6 +201,7 @@ pub async fn register_email(
             email: payload.email,
             display_name: payload.display_name,
             rewrite: payload.rewrite,
+            language: request_language(&headers).to_owned(),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -198,6 +217,7 @@ pub async fn register_email(
 )]
 pub async fn resend_verify_email(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<EmailOnlyRequest>,
 ) -> Result<(StatusCode, Json<EmailActionAccepted>), StatusCode> {
     let result = state
@@ -205,6 +225,7 @@ pub async fn resend_verify_email(
         .resend_verify(crate::service::email_auth::ResendVerifyInput {
             email: payload.email,
             rewrite: payload.rewrite,
+            language: request_language(&headers).to_owned(),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -272,6 +293,7 @@ pub async fn verify_email(
 )]
 pub async fn request_email_login(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<EmailOnlyRequest>,
 ) -> Result<(StatusCode, Json<EmailActionAccepted>), StatusCode> {
     let result = state
@@ -279,6 +301,7 @@ pub async fn request_email_login(
         .request_login(crate::service::email_auth::LoginEmailInput {
             email: payload.email,
             rewrite: payload.rewrite,
+            language: request_language(&headers).to_owned(),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -1,5 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
+import { translate } from "$lib/i18n/copy";
 import { apiJson } from "$lib/server/api";
+import { languageFromCookies, languageHeader } from "$lib/i18n/server";
 import { sanitizeInternalPath } from "$lib/server/redirects";
 
 type Mode = "login" | "register";
@@ -9,76 +11,88 @@ type AuthContext = {
   email?: string | null;
 };
 
-async function postJson(fetch: typeof globalThis.fetch, path: string, payload: Record<string, unknown>) {
-  return fetch(path, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function loadAuthPage(fetch: typeof globalThis.fetch, url: URL, mode: Mode) {
+export async function loadAuthPage(fetch: typeof globalThis.fetch, url: URL, mode: Mode, cookies: import("@sveltejs/kit").Cookies) {
   const email = url.searchParams.get("email") || "";
   const rewrite = sanitizeInternalPath(url.searchParams.get("rewrite") || url.searchParams.get("return_to"));
   const verified = url.searchParams.get("verified") === "1";
-  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context");
+  const language = languageFromCookies(cookies);
+  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context", {
+    headers: languageHeader(language),
+  });
 
   return {
     mode,
     email,
     rewrite,
     verified,
+    language,
     canonical: rewrite ? `${url.origin}/${mode}?rewrite=${encodeURIComponent(rewrite)}` : `${url.origin}/${mode}`,
     authContext: data || { authenticated: false, email: null },
   };
 }
 
 export const authActions = {
-  login: async ({ fetch, request, url }: { fetch: typeof globalThis.fetch; request: Request; url: URL }) => {
+  login: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
-      return fail(400, { mode: "login" as const, message: "Email is required.", tone: "error" as const, email, rewrite });
+      const language = languageFromCookies(cookies);
+      return fail(400, { mode: "login" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, rewrite });
     }
 
-    const response = await postJson(fetch, "/api/v1/auth/login/email", {
-      email,
-      rewrite: rewrite || null,
+    const language = languageFromCookies(cookies);
+    const responseWithLanguage = await fetch("/api/v1/auth/login/email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...languageHeader(language),
+      },
+      body: JSON.stringify({
+        email,
+        rewrite: rewrite || null,
+      }),
     });
 
-    if (!response.ok) {
-      return fail(response.status, { mode: "login" as const, message: `Request failed with HTTP ${response.status}.`, tone: "error" as const, email, rewrite });
+    if (!responseWithLanguage.ok) {
+      return fail(responseWithLanguage.status, { mode: "login" as const, message: translate(language, "auth.common.requestFailed", { status: responseWithLanguage.status }), tone: "error" as const, email, rewrite });
     }
 
-    return { mode: "login" as const, message: "Check your inbox for your sign-in link.", tone: "success" as const, email, rewrite };
+    return { mode: "login" as const, message: translate(language, "auth.login.emailSent"), tone: "success" as const, email, rewrite };
   },
-  register: async ({ fetch, request, url }: { fetch: typeof globalThis.fetch; request: Request; url: URL }) => {
+  register: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const displayName = String(data.get("display_name") || "").trim();
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
-      return fail(400, { mode: "register" as const, message: "Email is required.", tone: "error" as const, email, displayName, rewrite });
+      const language = languageFromCookies(cookies);
+      return fail(400, { mode: "register" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, displayName, rewrite });
     }
 
-    const response = await postJson(fetch, "/api/v1/auth/register/email", {
-      email,
-      display_name: displayName || null,
-      rewrite: rewrite || null,
+    const language = languageFromCookies(cookies);
+    const response = await fetch("/api/v1/auth/register/email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...languageHeader(language),
+      },
+      body: JSON.stringify({
+        email,
+        display_name: displayName || null,
+        rewrite: rewrite || null,
+      }),
     });
 
     if (!response.ok) {
-      return fail(response.status, { mode: "register" as const, message: `Request failed with HTTP ${response.status}.`, tone: "error" as const, email, displayName, rewrite });
+      return fail(response.status, { mode: "register" as const, message: translate(language, "auth.common.requestFailed", { status: response.status }), tone: "error" as const, email, displayName, rewrite });
     }
 
     return {
       mode: "register" as const,
-      message: "Check your inbox for the verification email.",
+      message: translate(language, "auth.register.emailSent"),
       tone: "success" as const,
       email,
       displayName,
@@ -86,28 +100,37 @@ export const authActions = {
       registrationRequested: true,
     };
   },
-  resend: async ({ fetch, request, url }: { fetch: typeof globalThis.fetch; request: Request; url: URL }) => {
+  resend: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const displayName = String(data.get("display_name") || "").trim();
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
-      return fail(400, { mode: "register" as const, message: "Email is required.", tone: "error" as const, email, displayName, rewrite, registrationRequested: true });
+      const language = languageFromCookies(cookies);
+      return fail(400, { mode: "register" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, displayName, rewrite, registrationRequested: true });
     }
 
-    const response = await postJson(fetch, "/api/v1/auth/verify/email/resend", {
-      email,
-      rewrite: rewrite || null,
+    const language = languageFromCookies(cookies);
+    const response = await fetch("/api/v1/auth/verify/email/resend", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...languageHeader(language),
+      },
+      body: JSON.stringify({
+        email,
+        rewrite: rewrite || null,
+      }),
     });
 
     if (!response.ok) {
-      return fail(response.status, { mode: "register" as const, message: `Request failed with HTTP ${response.status}.`, tone: "error" as const, email, displayName, rewrite, registrationRequested: true });
+      return fail(response.status, { mode: "register" as const, message: translate(language, "auth.common.requestFailed", { status: response.status }), tone: "error" as const, email, displayName, rewrite, registrationRequested: true });
     }
 
     return {
       mode: "register" as const,
-      message: "Verification email sent again.",
+      message: translate(language, "auth.register.resendSent"),
       tone: "success" as const,
       email,
       displayName,

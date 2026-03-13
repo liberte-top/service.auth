@@ -14,6 +14,7 @@ pub trait MailClientService: Send + Sync {
     async fn send_template_email(
         &self,
         template_id: &str,
+        locale: &str,
         to_email: &str,
         display_name: Option<&str>,
         variables: Vec<(String, String)>,
@@ -46,6 +47,7 @@ impl MailClientService for GrpcMailClientService {
     async fn send_template_email(
         &self,
         template_id: &str,
+        locale: &str,
         to_email: &str,
         display_name: Option<&str>,
         variables: Vec<(String, String)>,
@@ -55,7 +57,7 @@ impl MailClientService for GrpcMailClientService {
         client
             .send_template_email(SendTemplateEmailRequest {
                 template_id: template_id.to_owned(),
-                locale: "en".to_owned(),
+                locale: locale.to_owned(),
                 recipient: Some(Recipient {
                     email: to_email.to_owned(),
                     display_name: display_name.unwrap_or_default().to_owned(),

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { translate } from "$lib/i18n/copy";
   import { onMount } from "svelte";
   import type { PageData } from "./$types";
 
@@ -9,44 +10,44 @@
 
   const config = {
     "verify-success": {
-      eyebrow: "Email verified",
-      title: "Your address is confirmed",
-      copy: "You can now continue to sign in with your email link.",
-      action: "Continue to sign in",
-      fallback: "Back to sign in",
+      eyebrow: translate(data.language, "auth.flow.verifySuccess.eyebrow"),
+      title: translate(data.language, "auth.flow.verifySuccess.title"),
+      copy: translate(data.language, "auth.flow.verifySuccess.copy"),
+      action: translate(data.language, "auth.flow.verifySuccess.action"),
+      fallback: translate(data.language, "auth.flow.fallback"),
       tone: "success",
       autoRedirect: true,
-      titleTag: "Email verified - Liberte",
+      titleTag: translate(data.language, "auth.flow.verifySuccess.titleTag"),
     },
     "verify-invalid": {
-      eyebrow: "Verification issue",
-      title: "This verification link is no longer valid",
-      copy: "The link may have expired or already been used. Return to the sign-in page and request a fresh email.",
-      action: "Request a new verification email",
-      fallback: "Back to sign in",
+      eyebrow: translate(data.language, "auth.flow.verifyInvalid.eyebrow"),
+      title: translate(data.language, "auth.flow.verifyInvalid.title"),
+      copy: translate(data.language, "auth.flow.verifyInvalid.copy"),
+      action: translate(data.language, "auth.flow.verifyInvalid.action"),
+      fallback: translate(data.language, "auth.flow.fallback"),
       tone: "error",
       autoRedirect: false,
-      titleTag: "Verification link expired - Liberte",
+      titleTag: translate(data.language, "auth.flow.verifyInvalid.titleTag"),
     },
     "login-success": {
-      eyebrow: "Sign-in complete",
-      title: "You are signed in",
-      copy: "Your session is active in this browser and you can continue to the requested page.",
-      action: "Continue",
-      fallback: "Back to sign in",
+      eyebrow: translate(data.language, "auth.flow.loginSuccess.eyebrow"),
+      title: translate(data.language, "auth.flow.loginSuccess.title"),
+      copy: translate(data.language, "auth.flow.loginSuccess.copy"),
+      action: translate(data.language, "auth.flow.loginSuccess.action"),
+      fallback: translate(data.language, "auth.flow.fallback"),
       tone: "success",
       autoRedirect: true,
-      titleTag: "Signed in - Liberte",
+      titleTag: translate(data.language, "auth.flow.loginSuccess.titleTag"),
     },
     "login-invalid": {
-      eyebrow: "Sign-in issue",
-      title: "This sign-in link cannot be used anymore",
-      copy: "The email link may have expired or already been consumed. Return to the sign-in page to request another one.",
-      action: "Request a fresh sign-in link",
-      fallback: "Back to sign in",
+      eyebrow: translate(data.language, "auth.flow.loginInvalid.eyebrow"),
+      title: translate(data.language, "auth.flow.loginInvalid.title"),
+      copy: translate(data.language, "auth.flow.loginInvalid.copy"),
+      action: translate(data.language, "auth.flow.loginInvalid.action"),
+      fallback: translate(data.language, "auth.flow.fallback"),
       tone: "error",
       autoRedirect: false,
-      titleTag: "Sign-in link expired - Liberte",
+      titleTag: translate(data.language, "auth.flow.loginInvalid.titleTag"),
     },
   }[data.step];
 
@@ -87,9 +88,9 @@
 
       <p class={`banner ${config.tone}`} role={config.tone === "error" ? "alert" : "status"} aria-live={config.autoRedirect ? "polite" : config.tone === "error" ? "assertive" : "polite"}>
         {#if config.autoRedirect}
-          Redirecting in {countdown} seconds.
+          {translate(data.language, "auth.flow.redirecting", { countdown })}
         {:else}
-          Return to the sign-in page to request a fresh email.
+          {translate(data.language, "auth.flow.retry")}
         {/if}
       </p>
 
@@ -100,9 +101,9 @@
 
       <div class="flow-meta">
         {#if data.email}
-          <p class="flow-copy">Email: <strong>{data.email}</strong></p>
+          <p class="flow-copy">{translate(data.language, "auth.flow.email")}: <strong>{data.email}</strong></p>
         {/if}
-        <p class="flow-copy">Destination: <code>{destination}</code></p>
+        <p class="flow-copy">{translate(data.language, "auth.flow.destination")}: <code>{destination}</code></p>
       </div>
     </section>
   </section>

@@ -1,4 +1,5 @@
 import type { Actions, PageServerLoad } from "./$types";
+import { languageFromCookies } from "$lib/i18n/server";
 import { clearAuthCookie, clearAuthCookieFromHeader } from "$lib/server/cookies";
 
 async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
@@ -18,8 +19,9 @@ async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], 
   }
 }
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, cookies }) => {
   return {
+    language: languageFromCookies(cookies),
     canonical: `${url.origin}/logout`,
   };
 };

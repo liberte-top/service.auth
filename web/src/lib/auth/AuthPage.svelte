@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { translate } from "$lib/i18n/copy";
+  import type { LiberteLanguage } from "$lib/i18n/shared";
+
   type Mode = "login" | "register";
 
   type AuthContext = {
@@ -26,6 +29,7 @@
     form,
     primaryAction,
     resendAction,
+    language,
   }: {
     mode: Mode;
     authContext: AuthContext;
@@ -36,6 +40,7 @@
     form?: FormState;
     primaryAction: string;
     resendAction?: string;
+    language: LiberteLanguage;
   } = $props();
 
   const currentMode = $derived((form?.mode ?? mode) as Mode);
@@ -45,7 +50,7 @@
   const banner = $derived(form?.message ?? (verified ? "Email verified. You can now request your sign-in link." : ""));
   const bannerTone = $derived((form?.tone ?? (verified ? "success" : "info")) as "success" | "error" | "info");
   const registrationRequested = $derived(form?.registrationRequested ?? false);
-  const pageTitle = $derived(`${currentMode === "register" ? "Create account" : "Sign in"} - Liberte`);
+  const pageTitle = $derived(`${translate(language, currentMode === "register" ? "auth.register.title" : "auth.login.title")} - Liberte`);
   const description = $derived(currentMode === "register"
     ? "Create your Liberte account with a passwordless email verification flow."
     : "Sign in to Liberte with a secure one-time email link.");
@@ -74,22 +79,22 @@
     {#if authContext.authenticated}
       <section class="card auth-card-shell status-card">
         <div class="card-header">
-          <h1>You're already signed in</h1>
-          <p>{authContext.email || "Your account session is active in this browser."}</p>
+          <h1>{translate(language, "auth.common.signedIn")}</h1>
+          <p>{authContext.email || translate(language, "auth.common.activeSession")}</p>
         </div>
 
         <div class="actions compact-actions">
-          <a class="button-link" href={currentRewrite || "/profile"}>{currentRewrite ? "Continue" : "Open profile"}</a>
+          <a class="button-link" href={currentRewrite || "/profile"}>{currentRewrite ? translate(language, "auth.common.continue") : translate(language, "auth.common.openProfile")}</a>
           <form method="POST" action="/logout">
-            <button class="secondary" type="submit">Log out</button>
+            <button class="secondary" type="submit">{translate(language, "auth.common.logout")}</button>
           </form>
         </div>
       </section>
     {:else}
       <section class="card auth-card-shell">
         <div class="card-header">
-          <h1>{currentMode === "register" ? "Create account" : "Sign in"}</h1>
-          <p>{currentMode === "register" ? "Create your account with email, then verify it to continue." : "We will send a one-time link to your email."}</p>
+          <h1>{translate(language, currentMode === "register" ? "auth.register.title" : "auth.login.title")}</h1>
+          <p>{translate(language, currentMode === "register" ? "auth.register.summary" : "auth.login.summary")}</p>
         </div>
 
         {#if banner}
@@ -102,18 +107,18 @@
           <input type="hidden" name="rewrite" value={currentRewrite} />
 
           <label>
-            Email address
+            {translate(language, "auth.common.emailLabel")}
             <input name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email" required placeholder="you@example.com" value={currentEmail} />
           </label>
 
           {#if currentMode === "register"}
             <label>
-              Name
-              <input name="display_name" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder="Optional" value={displayName} />
+              {translate(language, "auth.common.nameLabel")}
+              <input name="display_name" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder={translate(language, "auth.common.namePlaceholder")} value={displayName} />
             </label>
           {/if}
 
-          <button type="submit">{currentMode === "register" ? "Create account" : "Send sign-in link"}</button>
+          <button type="submit">{translate(language, currentMode === "register" ? "auth.register.submit" : "auth.login.submit")}</button>
         </form>
 
         {#if currentMode === "register" && registrationRequested && resendAction}
@@ -121,23 +126,23 @@
             <input type="hidden" name="email" value={currentEmail} />
             <input type="hidden" name="display_name" value={displayName} />
             <input type="hidden" name="rewrite" value={currentRewrite} />
-            <button class="secondary" type="submit">Resend verification</button>
+            <button class="secondary" type="submit">{translate(language, "auth.register.resend")}</button>
           </form>
         {/if}
       </section>
 
       <p class="switch-copy">
         {#if currentMode === "login"}
-          New to Liberte?
-          <a href={alternateHref}>Create an account</a>
+          {translate(language, "auth.login.switchPrompt")}
+          <a href={alternateHref}>{translate(language, "auth.login.switchAction")}</a>
         {:else}
-          Already have an account?
-          <a href={alternateHref}>Sign in</a>
+          {translate(language, "auth.register.switchPrompt")}
+          <a href={alternateHref}>{translate(language, "auth.register.switchAction")}</a>
         {/if}
       </p>
 
       <p class="support-copy">
-        We email a one-time link to continue. {currentRewrite ? "After sign-in, you'll return to your original destination." : "If no destination is provided, you'll land on your profile page."}
+        {currentRewrite ? translate(language, "auth.common.supportWithRewrite") : translate(language, "auth.common.supportDefault")}
       </p>
     {/if}
   </section>

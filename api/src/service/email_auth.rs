@@ -21,6 +21,7 @@ use super::{
 
 const VERIFY_PURPOSE: &str = "verify_email";
 const LOGIN_PURPOSE: &str = "login_email";
+const DEFAULT_LANGUAGE: &str = "en";
 
 struct EmailTemplate {
     text: String,
@@ -31,16 +32,19 @@ pub struct RegisterEmailInput {
     pub email: String,
     pub display_name: Option<String>,
     pub rewrite: Option<String>,
+    pub language: String,
 }
 
 pub struct ResendVerifyInput {
     pub email: String,
     pub rewrite: Option<String>,
+    pub language: String,
 }
 
 pub struct LoginEmailInput {
     pub email: String,
     pub rewrite: Option<String>,
+    pub language: String,
 }
 
 pub struct CompleteEmailLoginInput {
@@ -164,6 +168,43 @@ impl EmailAuthServiceImpl {
         }
     }
 
+    fn normalize_language(language: &str) -> &str {
+        match language.trim().to_ascii_lowercase().as_str() {
+            "zh" | "zh-cn" => "zh-CN",
+            _ => DEFAULT_LANGUAGE,
+        }
+    }
+
+    fn destination_sentence(rewrite: Option<&str>, language: &str) -> String {
+        let language = Self::normalize_language(language);
+        rewrite
+            .filter(|value| !value.is_empty())
+            .map(|value| {
+                if language == "zh-CN" {
+                    format!("完成后我们会把你带回 {value}。")
+                } else {
+                    format!("After you continue, we will send you back to {value}.")
+                }
+            })
+            .unwrap_or_else(|| {
+                if language == "zh-CN" {
+                    "如果没有提供目标地址，我们会把你带到 auth 个人页。".to_owned()
+                } else {
+                    "If no destination was provided, we will send you to your auth profile page."
+                        .to_owned()
+                }
+            })
+    }
+
+    fn subject_for(purpose: &str, language: &str) -> &'static str {
+        match (purpose, Self::normalize_language(language)) {
+            (VERIFY_PURPOSE, "zh-CN") => "验证你的邮箱",
+            (LOGIN_PURPOSE, "zh-CN") => "完成登录",
+            (VERIFY_PURPOSE, _) => "Verify your email",
+            _ => "Complete your login",
+        }
+    }
+
     fn escape_html(value: &str) -> String {
         value
             .replace('&', "&amp;")
@@ -265,6 +306,7 @@ impl EmailAuthServiceImpl {
         base_url: &str,
         subject: &str,
         rewrite: Option<&str>,
+        language: &str,
     ) -> Result<(), sea_orm::DbErr> {
         let raw_token = Uuid::new_v4().to_string();
         let token = email_tokens::ActiveModel {
@@ -277,13 +319,7 @@ impl EmailAuthServiceImpl {
         self.email_tokens_repo.insert(token).await?;
 
         let action_link = Self::build_action_link(base_url, &raw_token, rewrite);
-        let destination_sentence = rewrite
-            .filter(|value| !value.is_empty())
-            .map(|value| format!("After you continue, we will send you back to {value}."))
-            .unwrap_or_else(|| {
-                "If no destination was provided, we will send you to your auth profile page."
-                    .to_owned()
-            });
+        let destination_sentence = Self::destination_sentence(rewrite, language);
         let expires_in = Self::expiry_label(self.config.email_token_ttl_secs());
 
         let grpc_result = self
@@ -294,6 +330,7 @@ impl EmailAuthServiceImpl {
                 } else {
                     "auth.login_link"
                 },
+                language,
                 &email.email_normalized,
                 None,
                 vec![
@@ -348,8 +385,9 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     &existing,
                     VERIFY_PURPOSE,
                     self.config.email_verify_base_url(),
-                    "Verify your email",
+                    Self::subject_for(VERIFY_PURPOSE, &input.language),
                     input.rewrite.as_deref(),
+                    &input.language,
                 )
                 .await?;
             }
@@ -381,8 +419,9 @@ impl EmailAuthService for EmailAuthServiceImpl {
             &account_email,
             VERIFY_PURPOSE,
             self.config.email_verify_base_url(),
-            "Verify your email",
+            Self::subject_for(VERIFY_PURPOSE, &input.language),
             input.rewrite.as_deref(),
+            &input.language,
         )
         .await?;
 
@@ -400,8 +439,9 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     &existing,
                     VERIFY_PURPOSE,
                     self.config.email_verify_base_url(),
-                    "Verify your email",
+                    Self::subject_for(VERIFY_PURPOSE, &input.language),
                     input.rewrite.as_deref(),
+                    &input.language,
                 )
                 .await?;
             }
@@ -446,8 +486,9 @@ impl EmailAuthService for EmailAuthServiceImpl {
                     &existing,
                     LOGIN_PURPOSE,
                     self.config.email_login_base_url(),
-                    "Complete your login",
+                    Self::subject_for(LOGIN_PURPOSE, &input.language),
                     input.rewrite.as_deref(),
+                    &input.language,
                 )
                 .await?;
             }

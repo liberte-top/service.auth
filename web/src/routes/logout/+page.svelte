@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translate } from "$lib/i18n/copy";
   import type { ActionData, PageData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -7,8 +8,8 @@
 </script>
 
 <svelte:head>
-  <title>{signedOut ? "Signed out - Liberte" : "Log out - Liberte"}</title>
-  <meta name="description" content="Sign out of your current Liberte session." />
+  <title>{signedOut ? `${translate(data.language, "auth.logout.successTitle")} - Liberte` : translate(data.language, "auth.logout.title")}</title>
+  <meta name="description" content={translate(data.language, "auth.logout.confirmBody")} />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="canonical" href={data.canonical} />
 </svelte:head>
@@ -18,18 +19,18 @@
     <a class="brand-link" href="/login">liberte.top</a>
 
     <section class="card logout-card">
-      <p class="section-label">Logout</p>
-      <h1>{signedOut ? "You are signed out" : "Sign out of this session"}</h1>
-      <p class="muted">{signedOut ? "Your session cookie has been cleared." : "Use the button below to clear the current browser session."}</p>
+      <p class="section-label">{translate(data.language, "auth.logout.label")}</p>
+      <h1>{signedOut ? translate(data.language, "auth.logout.successTitle") : translate(data.language, "auth.logout.confirmTitle")}</h1>
+      <p class="muted">{signedOut ? translate(data.language, "auth.logout.successBody") : translate(data.language, "auth.logout.confirmBody")}</p>
 
       {#if signedOut}
         <div class="actions compact-actions">
-          <a class="button-link" href="/login">Back to sign in</a>
+          <a class="button-link" href="/login">{translate(data.language, "auth.logout.back")}</a>
         </div>
       {:else}
         <form class="actions compact-actions" method="POST">
-          <button type="submit">Log out</button>
-          <a class="button-link secondary-link" href="/login">Cancel</a>
+          <button type="submit">{translate(data.language, "auth.common.logout")}</button>
+          <a class="button-link secondary-link" href="/login">{translate(data.language, "auth.logout.cancel")}</a>
         </form>
       {/if}
     </section>

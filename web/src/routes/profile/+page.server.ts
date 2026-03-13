@@ -1,4 +1,5 @@
 import { redirect } from "@sveltejs/kit";
+import { languageHeader, languageFromCookies } from "$lib/i18n/server";
 import type { PageServerLoad } from "./$types";
 import { apiJson } from "$lib/server/api";
 
@@ -7,8 +8,11 @@ type AuthContext = {
   email?: string | null;
 };
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
-  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context");
+export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
+  const language = languageFromCookies(cookies);
+  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context", {
+    headers: languageHeader(language),
+  });
 
   if (!data?.authenticated) {
     throw redirect(303, "/");
@@ -16,6 +20,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 
   return {
     email: data.email || "",
+    language,
     canonical: `${url.origin}/profile`,
   };
 };
