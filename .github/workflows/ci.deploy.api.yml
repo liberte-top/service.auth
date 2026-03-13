@@ -32,19 +32,11 @@ jobs:
         working-directory: api
         run: cargo test --locked
 
-      - name: Build API image
-        run: |
-          docker build ./api \
-            --build-arg APP_BUILD_SHA="${GITHUB_SHA}" \
-            --build-arg APP_BUILD_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
       - name: Capture build timestamp
-        if: github.event_name != 'pull_request'
         id: build_meta
         run: echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Buildx
-        if: github.event_name != 'pull_request'
         uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
@@ -55,15 +47,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push API image
-        if: github.event_name != 'pull_request'
+      - name: Build API image
         uses: docker/build-push-action@v7
         with:
           context: ./api
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             APP_BUILD_SHA=${{ github.sha }}
             APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
+          cache-from: type=gha,scope=service-auth-api
+          cache-to: type=gha,mode=max,scope=service-auth-api
           tags: |
             ghcr.io/liberte-top/service-auth-api:main
             ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}
