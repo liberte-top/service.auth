@@ -56,6 +56,8 @@ const copy = {
         fallback: "Back to sign in",
         redirecting: "Redirecting in {countdown} seconds.",
         retry: "Return to the sign-in page to request a fresh email.",
+        traceLabel: "Trace ID",
+        traceHint: "Share this ID when asking for support.",
         verifySuccess: {
           eyebrow: "Email verified",
           title: "Your address is confirmed",
@@ -144,6 +146,8 @@ const copy = {
         fallback: "返回登录",
         redirecting: "将在 {countdown} 秒后跳转。",
         retry: "返回登录页重新请求新的邮件。",
+        traceLabel: "Trace ID",
+        traceHint: "排查问题时请提供这个编号。",
         verifySuccess: {
           eyebrow: "邮箱已验证",
           title: "你的邮箱已确认",

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
@@ -16,6 +16,7 @@ use crate::{
         email_auth::{EmailActionAccepted, EmailLoginResult, EmailVerifyResult},
     },
     state::AppState,
+    telemetry::TraceContext,
 };
 
 const LIBERTE_LANGUAGE_HEADER: &str = "x-liberte-language";
@@ -120,7 +121,11 @@ fn login_page_url(
     verified: bool,
     rewrite: Option<&str>,
 ) -> String {
-    let path = if mode == "register" { "register" } else { "login" };
+    let path = if mode == "register" {
+        "register"
+    } else {
+        "login"
+    };
     let mut url = Url::parse(state.config().forwardauth_login_url())
         .ok()
         .and_then(|base| base.join(path).ok())
@@ -146,6 +151,7 @@ fn flow_page_url(
     email: Option<&str>,
     rewrite: Option<&str>,
     next: Option<&str>,
+    trace_id: Option<&str>,
 ) -> String {
     let mut url = Url::parse(state.config().forwardauth_login_url())
         .ok()
@@ -162,6 +168,9 @@ fn flow_page_url(
         }
         if let Some(next) = sanitized_rewrite(next) {
             query.append_pair("next", &next);
+        }
+        if let Some(trace_id) = trace_id.filter(|value| !value.is_empty()) {
+            query.append_pair("trace_id", trace_id);
         }
     }
     url.into()
@@ -244,6 +253,7 @@ pub async fn resend_verify_email(
 )]
 pub async fn verify_email(
     State(state): State<Arc<AppState>>,
+    Extension(trace): Extension<TraceContext>,
     Query(query): Query<VerifyQuery>,
 ) -> Result<Response, StatusCode> {
     let Some(result) = state
@@ -264,6 +274,7 @@ pub async fn verify_email(
                 false,
                 query.rewrite.as_deref(),
             )),
+            Some(&trace.trace_id),
         ))
         .into_response());
     };
@@ -280,6 +291,7 @@ pub async fn verify_email(
             true,
             query.rewrite.as_deref(),
         )),
+        Some(&trace.trace_id),
     ))
     .into_response())
 }
@@ -355,6 +367,7 @@ pub async fn complete_email_login(
 )]
 pub async fn complete_email_login_link(
     State(state): State<Arc<AppState>>,
+    Extension(trace): Extension<TraceContext>,
     Query(query): Query<VerifyQuery>,
 ) -> Result<Response, StatusCode> {
     let Some(result) = state
@@ -375,6 +388,7 @@ pub async fn complete_email_login_link(
                 false,
                 query.rewrite.as_deref(),
             )),
+            Some(&trace.trace_id),
         ))
         .into_response());
     };
@@ -386,6 +400,7 @@ pub async fn complete_email_login_link(
         None,
         query.rewrite.as_deref(),
         Some(&next),
+        Some(&trace.trace_id),
     ))
     .into_response();
     response.headers_mut().insert(

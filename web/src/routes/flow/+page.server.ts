@@ -16,6 +16,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
     email: url.searchParams.get("email") || "",
     rewrite: sanitizeInternalPath(url.searchParams.get("rewrite")),
     next: sanitizeInternalPath(url.searchParams.get("next")) || "/",
+    traceId: url.searchParams.get("trace_id") || "",
     language: languageFromCookies(cookies),
     canonical: `${url.origin}/flow?step=${step}`,
   };

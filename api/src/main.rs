@@ -1,3 +1,4 @@
+use axum::middleware;
 use axum::Router;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -15,12 +16,14 @@ mod repo;
 mod schema;
 mod service;
 mod state;
+mod telemetry;
 
 use openapi::ApiDoc;
 use state::AppState;
 
 #[tokio::main]
 async fn main() {
+    telemetry::init_tracing("service-auth-api");
     let state = AppState::new().await;
     let _ = state.db().conn();
     let _ = state.accounts_repo();
@@ -32,6 +35,7 @@ async fn main() {
         .merge(handler::internal_auth::routes(state.clone()))
         .merge(handler::admin_accounts::routes(state.clone()))
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()))
+        .layer(middleware::from_fn(telemetry::trace_http_request))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

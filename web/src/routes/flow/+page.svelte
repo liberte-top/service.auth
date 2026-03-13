@@ -104,6 +104,10 @@
           <p class="flow-copy">{translate(data.language, "auth.flow.email")}: <strong>{data.email}</strong></p>
         {/if}
         <p class="flow-copy">{translate(data.language, "auth.flow.destination")}: <code>{destination}</code></p>
+        {#if data.traceId}
+          <p class="flow-copy">{translate(data.language, "auth.flow.traceLabel")}: <code>{data.traceId}</code></p>
+          <p class="flow-copy">{translate(data.language, "auth.flow.traceHint")}</p>
+        {/if}
       </div>
     </section>
   </section>
