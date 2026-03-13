@@ -98,6 +98,47 @@ code {
   text-decoration: none;
 }
 
+.language-switcher {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow);
+}
+
+.language-chip {
+  width: auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.language-chip.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.language-chip:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.language-chip.active:hover:not(:disabled) {
+  background: var(--accent-dark);
+  color: #fff;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -326,5 +367,10 @@ button.secondary:hover:not(:disabled),
   .logout-card,
   .flow-card {
     padding: 20px;
+  }
+
+  .language-switcher {
+    top: 12px;
+    right: 12px;
   }
 }

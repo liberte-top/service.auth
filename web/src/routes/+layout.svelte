@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import LanguageSwitcher from "$lib/i18n/LanguageSwitcher.svelte";
 
   import type { LayoutData } from "./$types";
   import { setContext } from "svelte";
@@ -15,4 +16,5 @@
   <meta name="liberte:build-timestamp" content={data.buildInfo.timestamp} />
 </svelte:head>
 
+<LanguageSwitcher language={data.language} supportedLanguages={data.supportedLanguages} />
 <slot />
