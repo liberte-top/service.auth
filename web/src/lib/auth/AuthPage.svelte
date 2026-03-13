@@ -24,6 +24,8 @@
     verified,
     canonical,
     form,
+    primaryAction,
+    resendAction,
   }: {
     mode: Mode;
     authContext: AuthContext;
@@ -32,6 +34,8 @@
     verified?: boolean;
     canonical: string;
     form?: FormState;
+    primaryAction: string;
+    resendAction?: string;
   } = $props();
 
   const currentMode = $derived((form?.mode ?? mode) as Mode);
@@ -94,7 +98,7 @@
           </p>
         {/if}
 
-        <form class="form-fields" method="POST" action={currentMode === "register" ? "?/register" : "?/login"}>
+        <form class="form-fields" method="POST" action={primaryAction}>
           <input type="hidden" name="rewrite" value={currentRewrite} />
 
           <label>
@@ -112,8 +116,8 @@
           <button type="submit">{currentMode === "register" ? "Create account" : "Send sign-in link"}</button>
         </form>
 
-        {#if currentMode === "register" && registrationRequested}
-          <form class="actions compact-actions" method="POST" action="?/resend">
+        {#if currentMode === "register" && registrationRequested && resendAction}
+          <form class="actions compact-actions" method="POST" action={resendAction}>
             <input type="hidden" name="email" value={currentEmail} />
             <input type="hidden" name="display_name" value={displayName} />
             <input type="hidden" name="rewrite" value={currentRewrite} />
