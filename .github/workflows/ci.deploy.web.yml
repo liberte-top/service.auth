@@ -76,7 +76,7 @@ jobs:
             APP_BUILD_SHA=${{ github.sha }}
             APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           cache-from: type=gha,scope=service-auth-web
-          cache-to: type=gha,mode=max,scope=service-auth-web
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=service-auth-web' || '' }}
           tags: |
             ghcr.io/liberte-top/service-auth-web:main
             ghcr.io/liberte-top/service-auth-web:sha-${{ github.sha }}

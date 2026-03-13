@@ -32,6 +32,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: api -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run tests
         working-directory: api
@@ -61,7 +62,7 @@ jobs:
             APP_BUILD_SHA=${{ github.sha }}
             APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           cache-from: type=gha,scope=service-auth-api
-          cache-to: type=gha,mode=max,scope=service-auth-api
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=service-auth-api' || '' }}
           tags: |
             ghcr.io/liberte-top/service-auth-api:main
             ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}
