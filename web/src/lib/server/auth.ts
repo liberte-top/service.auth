@@ -63,6 +63,7 @@ export const authActions = {
   },
   register: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
+    const intent = String(data.get("intent") || "register");
     const email = String(data.get("email") || "").trim();
     const displayName = String(data.get("display_name") || "").trim();
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
@@ -73,55 +74,25 @@ export const authActions = {
     }
 
     const language = languageFromCookies(cookies);
-    const response = await fetch("/api/v1/auth/register/email", {
+    const path = intent === "resend" ? "/api/v1/auth/verify/email/resend" : "/api/v1/auth/register/email";
+    const body = intent === "resend"
+      ? {
+          email,
+          rewrite: rewrite || null,
+        }
+      : {
+          email,
+          display_name: displayName || null,
+          rewrite: rewrite || null,
+        };
+
+    const response = await fetch(path, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         ...languageHeader(language),
       },
-      body: JSON.stringify({
-        email,
-        display_name: displayName || null,
-        rewrite: rewrite || null,
-      }),
-    });
-
-    if (!response.ok) {
-      return fail(response.status, { mode: "register" as const, message: translate(language, "auth.common.requestFailed", { status: response.status }), tone: "error" as const, email, displayName, rewrite });
-    }
-
-    return {
-      mode: "register" as const,
-      message: translate(language, "auth.register.emailSent"),
-      tone: "success" as const,
-      email,
-      displayName,
-      rewrite,
-      registrationRequested: true,
-    };
-  },
-  resend: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
-    const data = await request.formData();
-    const email = String(data.get("email") || "").trim();
-    const displayName = String(data.get("display_name") || "").trim();
-    const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
-
-    if (!email) {
-      const language = languageFromCookies(cookies);
-      return fail(400, { mode: "register" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, displayName, rewrite, registrationRequested: true });
-    }
-
-    const language = languageFromCookies(cookies);
-    const response = await fetch("/api/v1/auth/verify/email/resend", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...languageHeader(language),
-      },
-      body: JSON.stringify({
-        email,
-        rewrite: rewrite || null,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -130,7 +101,7 @@ export const authActions = {
 
     return {
       mode: "register" as const,
-      message: translate(language, "auth.register.resendSent"),
+      message: translate(language, intent === "resend" ? "auth.register.resendSent" : "auth.register.emailSent"),
       tone: "success" as const,
       email,
       displayName,

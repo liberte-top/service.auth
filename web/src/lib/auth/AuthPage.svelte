@@ -28,7 +28,6 @@
     canonical,
     form,
     primaryAction,
-    resendAction,
     language,
   }: {
     mode: Mode;
@@ -39,7 +38,6 @@
     canonical: string;
     form?: FormState;
     primaryAction: string;
-    resendAction?: string;
     language: LiberteLanguage;
   } = $props();
 
@@ -105,6 +103,7 @@
 
         <form class="form-fields" method="POST" action={primaryAction}>
           <input type="hidden" name="rewrite" value={currentRewrite} />
+          <input type="hidden" name="intent" value="register" />
 
           <label>
             {translate(language, "auth.common.emailLabel")}
@@ -121,11 +120,12 @@
           <button type="submit">{translate(language, currentMode === "register" ? "auth.register.submit" : "auth.login.submit")}</button>
         </form>
 
-        {#if currentMode === "register" && registrationRequested && resendAction}
-          <form class="actions compact-actions" method="POST" action={resendAction}>
+        {#if currentMode === "register" && registrationRequested}
+          <form class="actions compact-actions" method="POST" action={primaryAction}>
             <input type="hidden" name="email" value={currentEmail} />
             <input type="hidden" name="display_name" value={displayName} />
             <input type="hidden" name="rewrite" value={currentRewrite} />
+            <input type="hidden" name="intent" value="resend" />
             <button class="secondary" type="submit">{translate(language, "auth.register.resend")}</button>
           </form>
         {/if}

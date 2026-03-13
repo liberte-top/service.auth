@@ -5,5 +5,4 @@ export const load: PageServerLoad = async ({ fetch, url, cookies }) => loadAuthP
 
 export const actions: Actions = {
   default: authActions.register,
-  resend: authActions.resend,
 };
