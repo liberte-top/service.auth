@@ -5,7 +5,6 @@ Active product layer for the liberte.top experiment.
 ## Responsibilities
 
 - `api/`: Rust API and OpenAPI source of truth.
-- `mail/`: Rust gRPC mail delivery service and template source of truth.
 - `web/`: Svelte web UI.
 - `e2e/`: Playwright smoke coverage.
 - `docker-compose.yml`: local full-stack development.
@@ -14,9 +13,10 @@ Active product layer for the liberte.top experiment.
 
 - `web` is deployed as the public same-origin entrypoint.
 - `web` nginx proxies `/api/` to `auth-api`; the frontend does not carry an environment-specific API base URL.
-- CI publishes `ghcr.io/liberte-top/service-auth-api`, `ghcr.io/liberte-top/service-auth-mail`, and `ghcr.io/liberte-top/service-auth-web`.
+- CI publishes `ghcr.io/liberte-top/service-auth-api` and `ghcr.io/liberte-top/service-auth-web` from this repository.
+- `service.mail` publishes `ghcr.io/liberte-top/service-mail` from its own repository.
 - `api` also exposes `/api/v1/context` and `/internal/auth/session/check` for gateway-driven auth integration.
-- `mail` owns auth email templates and provider delivery integration.
+- Mail delivery is delegated to sibling repository `../service.mail` over gRPC.
 
 ## Boundaries
 

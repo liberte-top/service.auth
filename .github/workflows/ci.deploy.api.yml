@@ -7,13 +7,11 @@ on:
       - main
     paths:
       - "api/**"
-      - "proto/**"
       - "docker-compose.yml"
       - ".github/workflows/ci.deploy.api.yml"
   pull_request:
     paths:
       - "api/**"
-      - "proto/**"
       - "docker-compose.yml"
       - ".github/workflows/ci.deploy.api.yml"
 
@@ -57,8 +55,7 @@ jobs:
       - name: Build API image
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: ./api/Dockerfile
+          context: ./api
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             APP_BUILD_SHA=${{ github.sha }}

@@ -5,14 +5,14 @@
 
 ## Current Flow
 - This repository is the active product layer for the liberte.top experiment.
-- Runtime stack is `docker-compose` with `db + api + mail + web`.
+- Runtime stack is `docker-compose` with `db + api + web`, plus sibling repo `../service.mail` for mail delivery.
 - E2E verification is Playwright-based under `e2e/`.
 - Web and API now run in same-origin deployment mode: the web nginx proxies `/api/` to the API service.
 
 ## Single Source of Truth
 - Container runtime parameters live in root `.env` (see `.env.example`).
 - E2E runtime parameters live in `e2e/.env` (see `e2e/.env.example`) and are intentionally isolated from root env.
-- Service implementation lives in `api/`, `mail/`, and `web/`; smoke validation lives in `e2e/specs/`.
+- Service implementation lives in `api/` and `web/`; mail delivery lives in sibling repo `../service.mail`; smoke validation lives in `e2e/specs/`.
 
 ## Repository Structure (Refactor Map)
 Use this as the baseline module map before iterative refactor.
@@ -23,11 +23,6 @@ service.auth/
 ├── api/                      # Rust API (health + accounts CRUD + OpenAPI)
 │   ├── src/
 │   ├── tests/
-│   ├── Dockerfile
-│   └── Cargo.toml
-├── mail/                     # Rust gRPC mail service and templates
-│   ├── src/
-│   ├── templates/
 │   ├── Dockerfile
 │   └── Cargo.toml
 ├── web/                      # SvelteKit SSR frontend
@@ -63,7 +58,7 @@ service.auth/
 ## Execution Entry
 - Stack bootstrap: `docker compose up -d db api mail web`
 - API tests: `cd api && cargo test --locked`
-- Mail build: `cd mail && cargo build`
+- Mail build: `cd ../service.mail && cargo build --locked`
 - Web build: `cd web && pnpm install --frozen-lockfile && pnpm build`
 - E2E checks: `cd e2e && pnpm install --frozen-lockfile && pnpm test`
 
@@ -73,7 +68,7 @@ service.auth/
 - `docker compose logs -f api`
 - `docker compose logs -f mail`
 - `cd api && cargo test --locked`
-- `cd mail && cargo build`
+- `cd ../service.mail && cargo build --locked`
 - `cd web && pnpm build`
 - `cd e2e && pnpm typecheck`
 - `cd e2e && pnpm exec playwright test --list`
@@ -86,15 +81,15 @@ service.auth/
 ## Minimal Baseline Regression Checklist
 - `docker compose up -d db api mail web`
 - `cd api && cargo test --locked`
-- `cd mail && cargo build`
+- `cd ../service.mail && cargo build --locked`
 - `cd web && pnpm build`
 - `cd e2e && pnpm typecheck`
 - `cd e2e && pnpm test`
 
 ## CI Strategy
-- Keep API, Mail, and Web workflows decoupled in `.github/workflows/ci.deploy.api.yml`, `.github/workflows/ci.deploy.mail.yml`, and `.github/workflows/ci.deploy.web.yml`.
+- Keep API and Web workflows in this repository decoupled in `.github/workflows/ci.deploy.api.yml` and `.github/workflows/ci.deploy.web.yml`.
 - API CI runs Rust tests, image build, GHCR publish, and opens an image-promotion PR to `kubernetes`.
-- Mail CI runs Rust build, image build, GHCR publish, and opens an image-promotion PR to `kubernetes`.
+- Mail CI lives in sibling repo `../service.mail`.
 - Web CI runs frontend build, image build, GHCR publish, and opens an image-promotion PR to `kubernetes`.
 - Add dedicated E2E CI only when runtime and stability requirements are explicitly defined.
 
