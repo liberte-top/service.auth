@@ -3,17 +3,17 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  const mode = form?.mode ?? data.mode;
-  const email = form?.email ?? data.email;
-  const displayName = form?.displayName ?? "";
-  const rewrite = form?.rewrite ?? data.rewrite;
-  const banner = form?.message ?? (data.verified ? "Email verified. You can now request your sign-in link." : "");
-  const bannerTone = form?.tone ?? (data.verified ? "success" : "info");
-  const registrationRequested = form?.registrationRequested ?? false;
-  const pageTitle = `${mode === "register" ? "Create account" : "Sign in"} - Liberte`;
-  const description = mode === "register"
+  const mode = $derived((form?.mode ?? data.mode) as "login" | "register");
+  const email = $derived(form?.email ?? data.email);
+  const displayName = $derived(form?.displayName ?? "");
+  const rewrite = $derived(form?.rewrite ?? data.rewrite);
+  const banner = $derived(form?.message ?? (data.verified ? "Email verified. You can now request your sign-in link." : ""));
+  const bannerTone = $derived((form?.tone ?? (data.verified ? "success" : "info")) as "success" | "error" | "info");
+  const registrationRequested = $derived(form?.registrationRequested ?? false);
+  const pageTitle = $derived(`${mode === "register" ? "Create account" : "Sign in"} - Liberte`);
+  const description = $derived(mode === "register"
     ? "Create your Liberte account with a passwordless email verification flow."
-    : "Sign in to Liberte with a secure one-time email link.";
+    : "Sign in to Liberte with a secure one-time email link.");
 </script>
 
 <svelte:head>
