@@ -6,6 +6,9 @@
 
 <svelte:head>
   <title>Profile - Liberte</title>
+  <meta name="description" content="View the email address attached to your current Liberte session." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
 <main class="page profile-page">
@@ -17,9 +20,9 @@
       <h1>{data.email}</h1>
       <p class="muted">This is the email attached to your current session.</p>
 
-      <div class="actions compact-actions">
-        <a class="button-link secondary-link" href="/logout">Log out</a>
-      </div>
+      <form class="actions compact-actions" method="POST" action="/logout">
+        <button class="secondary" type="submit">Log out</button>
+      </form>
     </section>
   </section>
 </main>

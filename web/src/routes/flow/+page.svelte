@@ -69,6 +69,9 @@
 
 <svelte:head>
   <title>{config.titleTag}</title>
+  <meta name="description" content={config.copy} />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
 <main class="page auth-page">
@@ -82,7 +85,7 @@
         <p>{config.copy}</p>
       </div>
 
-      <p class={`banner ${config.tone}`}>
+      <p class={`banner ${config.tone}`} role={config.tone === "error" ? "alert" : "status"} aria-live={config.autoRedirect ? "polite" : config.tone === "error" ? "assertive" : "polite"}>
         {#if config.autoRedirect}
           Redirecting in {countdown} seconds.
         {:else}

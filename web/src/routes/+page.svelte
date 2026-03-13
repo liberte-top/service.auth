@@ -11,10 +11,16 @@
   const bannerTone = form?.tone ?? (data.verified ? "success" : "info");
   const registrationRequested = form?.registrationRequested ?? false;
   const pageTitle = `${mode === "register" ? "Create account" : "Sign in"} - Liberte`;
+  const description = mode === "register"
+    ? "Create your Liberte account with a passwordless email verification flow."
+    : "Sign in to Liberte with a secure one-time email link.";
 </script>
 
 <svelte:head>
   <title>{pageTitle}</title>
+  <meta name="description" content={description} />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
 <main class="page auth-page">
@@ -30,7 +36,9 @@
 
         <div class="actions compact-actions">
           <a class="button-link" href={rewrite || "/profile"}>{rewrite ? "Continue" : "Open profile"}</a>
-          <a class="button-link secondary-link" href="/logout">Log out</a>
+          <form method="POST" action="/logout">
+            <button class="secondary" type="submit">Log out</button>
+          </form>
         </div>
       </section>
     {:else}
@@ -41,7 +49,9 @@
         </div>
 
         {#if banner}
-          <p class={`banner ${bannerTone}`}>{banner}</p>
+          <p class={`banner ${bannerTone}`} role={bannerTone === "error" ? "alert" : "status"} aria-live={bannerTone === "error" ? "assertive" : "polite"}>
+            {banner}
+          </p>
         {/if}
 
         <form class="form-fields" method="POST" action={mode === "register" ? "?/register" : "?/login"}>
@@ -49,13 +59,13 @@
 
           <label>
             Email address
-            <input name="email" type="email" autocomplete="email" placeholder="you@example.com" value={email} />
+            <input name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email" required placeholder="you@example.com" value={email} />
           </label>
 
           {#if mode === "register"}
             <label>
               Name
-              <input name="display_name" autocomplete="name" placeholder="Optional" value={displayName} />
+              <input name="display_name" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder="Optional" value={displayName} />
             </label>
           {/if}
 

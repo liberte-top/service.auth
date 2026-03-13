@@ -45,6 +45,13 @@ a:hover {
   text-decoration: underline;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(31, 111, 235, 0.28);
+  outline-offset: 2px;
+}
+
 h1,
 h2,
 h3,
@@ -201,6 +208,10 @@ button.secondary:hover:not(:disabled),
 .actions {
   display: grid;
   gap: 12px;
+}
+
+.actions form {
+  margin: 0;
 }
 
 .compact-actions {

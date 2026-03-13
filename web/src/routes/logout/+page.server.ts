@@ -1,7 +1,7 @@
-import type { PageServerLoad } from "./$types";
+import type { Actions, PageServerLoad } from "./$types";
 import { clearAuthCookie, clearAuthCookieFromHeader } from "$lib/server/cookies";
 
-export const load: PageServerLoad = async ({ cookies, fetch }) => {
+async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
   try {
     const response = await fetch("/api/v1/auth/logout", {
       method: "POST",
@@ -16,8 +16,20 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
   } catch {
     clearAuthCookie(cookies);
   }
+}
 
+export const load: PageServerLoad = async ({ url }) => {
   return {
-    success: true,
+    canonical: `${url.origin}/logout`,
   };
+};
+
+export const actions: Actions = {
+  default: async ({ cookies, fetch }) => {
+    await performLogout(cookies, fetch);
+
+    return {
+      success: true,
+    };
+  },
 };

@@ -1,6 +1,7 @@
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { apiJson } from "$lib/server/api";
+import { sanitizeInternalPath } from "$lib/server/redirects";
 
 type Mode = "login" | "register";
 
@@ -8,18 +9,6 @@ type AuthContext = {
   authenticated?: boolean;
   email?: string | null;
 };
-
-function sanitizeRewrite(value: string | null) {
-  const trimmed = (value || "").trim();
-  if (!trimmed) return "";
-  if (trimmed.startsWith("/")) return trimmed;
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
-}
 
 async function postJson(fetch: typeof globalThis.fetch, path: string, payload: Record<string, unknown>) {
   return fetch(path, {
@@ -34,7 +23,7 @@ async function postJson(fetch: typeof globalThis.fetch, path: string, payload: R
 export const load: PageServerLoad = async ({ fetch, url }) => {
   const mode = url.searchParams.get("mode") === "register" ? "register" : "login";
   const email = url.searchParams.get("email") || "";
-  const rewrite = sanitizeRewrite(url.searchParams.get("rewrite") || url.searchParams.get("return_to"));
+  const rewrite = sanitizeInternalPath(url.searchParams.get("rewrite") || url.searchParams.get("return_to"));
   const verified = url.searchParams.get("verified") === "1";
   const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context");
 
@@ -43,6 +32,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
     email,
     rewrite,
     verified,
+    canonical: rewrite ? `${url.origin}/?mode=${mode}&rewrite=${encodeURIComponent(rewrite)}` : `${url.origin}/?mode=${mode}`,
     authContext: data || { authenticated: false, email: null },
   };
 };
@@ -51,7 +41,7 @@ export const actions: Actions = {
   login: async ({ fetch, request, url }) => {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
-    const rewrite = sanitizeRewrite(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
+    const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
       return fail(400, { mode: "login" satisfies Mode, message: "Email is required.", tone: "error", email, rewrite });
@@ -72,7 +62,7 @@ export const actions: Actions = {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const displayName = String(data.get("display_name") || "").trim();
-    const rewrite = sanitizeRewrite(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
+    const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
       return fail(400, { mode: "register" satisfies Mode, message: "Email is required.", tone: "error", email, displayName, rewrite });
@@ -102,7 +92,7 @@ export const actions: Actions = {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const displayName = String(data.get("display_name") || "").trim();
-    const rewrite = sanitizeRewrite(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
+    const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
       return fail(400, { mode: "register" satisfies Mode, message: "Email is required.", tone: "error", email, displayName, rewrite, registrationRequested: true });
