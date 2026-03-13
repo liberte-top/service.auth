@@ -34,9 +34,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: "22.18.0"
-          cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
+          node-version: "24.8.0"
 
       - name: Enable corepack pnpm
         run: corepack enable
