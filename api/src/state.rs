@@ -11,7 +11,8 @@ use crate::{
     repo::sessions::SessionsRepo,
     service::{
         access::AccessService, accounts::AccountsService, auth_context::AuthContextService,
-        config::ConfigService, email_auth::EmailAuthService, mailer::MailerService,
+        config::ConfigService, email_auth::EmailAuthService, mail_client::MailClientService,
+        mailer::MailerService,
     },
 };
 
@@ -82,6 +83,9 @@ impl AppState {
         let mailer = Arc::new(crate::service::mailer::ResendMailerService::new(
             config.clone(),
         ));
+        let mail_client = Arc::new(crate::service::mail_client::GrpcMailClientService::new(
+            config.clone(),
+        ));
         let access = Arc::new(crate::service::access::AccessServiceImpl::new(
             config.clone(),
             api_keys_repo.clone(),
@@ -104,6 +108,7 @@ impl AppState {
             account_emails_repo.clone(),
             email_tokens_repo.clone(),
             sessions_repo.clone(),
+            mail_client as Arc<dyn MailClientService>,
             mailer as Arc<dyn MailerService>,
             config.clone(),
         ));

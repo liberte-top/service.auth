@@ -10,4 +10,5 @@ pub struct Config {
     pub email_verify_base_url: String,
     pub email_login_base_url: String,
     pub email_token_ttl_secs: i64,
+    pub mail_grpc_addr: Option<String>,
 }

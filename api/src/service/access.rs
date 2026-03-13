@@ -239,7 +239,10 @@ impl AccessServiceImpl {
             .list_by_account_id(account_id)
             .await
             .map(|items| {
-                let scopes = items.into_iter().map(|item| item.scope_name).collect::<Vec<_>>();
+                let scopes = items
+                    .into_iter()
+                    .map(|item| item.scope_name)
+                    .collect::<Vec<_>>();
                 if scopes.is_empty() {
                     Self::default_browser_scopes()
                 } else {

@@ -14,6 +14,7 @@ pub trait ConfigService: Send + Sync {
     fn email_verify_base_url(&self) -> &str;
     fn email_login_base_url(&self) -> &str;
     fn email_token_ttl_secs(&self) -> i64;
+    fn mail_grpc_addr(&self) -> Option<&str>;
 }
 
 pub struct ConfigServiceImpl {
@@ -71,6 +72,9 @@ impl ConfigServiceImpl {
             .ok()
             .and_then(|value| value.trim().parse::<i64>().ok())
             .unwrap_or(900);
+        let mail_grpc_addr = env::var("MAIL_GRPC_ADDR")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
         Self {
             config: Arc::new(Config {
                 port,
@@ -83,6 +87,7 @@ impl ConfigServiceImpl {
                 email_verify_base_url,
                 email_login_base_url,
                 email_token_ttl_secs,
+                mail_grpc_addr,
             }),
         }
     }
@@ -127,5 +132,9 @@ impl ConfigService for ConfigServiceImpl {
 
     fn email_token_ttl_secs(&self) -> i64 {
         self.config.email_token_ttl_secs
+    }
+
+    fn mail_grpc_addr(&self) -> Option<&str> {
+        self.config.mail_grpc_addr.as_deref()
     }
 }

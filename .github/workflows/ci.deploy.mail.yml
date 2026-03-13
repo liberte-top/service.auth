@@ -1,4 +1,4 @@
-name: ci.deploy.api
+name: ci.deploy.mail
 
 on:
   workflow_dispatch: {}
@@ -6,19 +6,19 @@ on:
     branches:
       - main
     paths:
-      - "api/**"
+      - "mail/**"
       - "proto/**"
       - "docker-compose.yml"
-      - ".github/workflows/ci.deploy.api.yml"
+      - ".github/workflows/ci.deploy.mail.yml"
   pull_request:
     paths:
-      - "api/**"
+      - "mail/**"
       - "proto/**"
       - "docker-compose.yml"
-      - ".github/workflows/ci.deploy.api.yml"
+      - ".github/workflows/ci.deploy.mail.yml"
 
 jobs:
-  build-test-api:
+  build-test-mail:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,11 +33,11 @@ jobs:
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: api -> target
+          workspaces: mail -> target
 
-      - name: Run tests
-        working-directory: api
-        run: cargo test --locked
+      - name: Build mail
+        working-directory: mail
+        run: cargo build --locked
 
       - name: Capture build timestamp
         id: build_meta
@@ -54,20 +54,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build API image
+      - name: Build mail image
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./api/Dockerfile
+          file: ./mail/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          build-args: |
-            APP_BUILD_SHA=${{ github.sha }}
-            APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
-          cache-from: type=gha,scope=service-auth-api
-          cache-to: type=gha,mode=max,scope=service-auth-api
+          cache-from: type=gha,scope=service-auth-mail
+          cache-to: type=gha,mode=max,scope=service-auth-mail
           tags: |
-            ghcr.io/liberte-top/service-auth-api:main
-            ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}
+            ghcr.io/liberte-top/service-auth-mail:main
+            ghcr.io/liberte-top/service-auth-mail:sha-${{ github.sha }}
 
       - name: Checkout kubernetes repo
         if: github.event_name != 'pull_request'
@@ -78,7 +75,7 @@ jobs:
           token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
           path: kubernetes
 
-      - name: Update auth-api image tag
+      - name: Update auth-mail image tag
         if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
@@ -86,14 +83,15 @@ jobs:
           from pathlib import Path
 
           path = Path('kubernetes/charts/service/auth/values.yaml')
-          replacement = '    tag: sha-${{ github.sha }} # auth-api-image'
+          replacement = '    tag: sha-${{ github.sha }} # auth-mail-image'
           lines = []
           for line in path.read_text().splitlines():
-            if line.strip().endswith('# auth-api-image'):
-              line = replacement
-            lines.append(line)
+              if line.strip().endswith('# auth-mail-image'):
+                  line = replacement
+              lines.append(line)
           path.write_text('\n'.join(lines) + '\n')
           PY
+
       - name: Create kubernetes promotion PR
         if: github.event_name != 'pull_request'
         id: create_pr
@@ -101,12 +99,12 @@ jobs:
         with:
           token: ${{ secrets.KUBERNETES_REPO_TOKEN }}
           path: kubernetes
-          branch: promote/auth-api-${{ github.sha }}
+          branch: promote/auth-mail-${{ github.sha }}
           delete-branch: true
-          commit-message: "chore: promote auth-api image"
-          title: "chore: promote auth-api image"
+          commit-message: "chore: promote auth-mail image"
+          title: "chore: promote auth-mail image"
           body: |
-            Update `auth-api` to `ghcr.io/liberte-top/service-auth-api:sha-${{ github.sha }}`.
+            Update `auth-mail` to `ghcr.io/liberte-top/service-auth-mail:sha-${{ github.sha }}`.
 
       - name: Enable PR auto-merge
         if: github.event_name != 'pull_request' && steps.create_pr.outputs.pull-request-number != ''

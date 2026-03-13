@@ -1,0 +1,11 @@
+.git/
+.github/
+api/target/
+mail/target/
+web/node_modules/
+web/.svelte-kit/
+web/build/
+web/public/version.json
+e2e/node_modules/
+e2e/playwright-report/
+e2e/test-results/

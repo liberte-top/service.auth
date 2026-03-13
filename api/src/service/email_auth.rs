@@ -14,7 +14,10 @@ use crate::{
     },
 };
 
-use super::{accounts::AccountsService, config::ConfigService, mailer::MailerService};
+use super::{
+    accounts::AccountsService, config::ConfigService, mail_client::MailClientService,
+    mailer::MailerService,
+};
 
 const VERIFY_PURPOSE: &str = "verify_email";
 const LOGIN_PURPOSE: &str = "login_email";
@@ -90,6 +93,7 @@ pub struct EmailAuthServiceImpl {
     account_emails_repo: Arc<dyn AccountEmailsRepo>,
     email_tokens_repo: Arc<dyn EmailTokensRepo>,
     sessions_repo: Arc<dyn SessionsRepo>,
+    mail_client: Arc<dyn MailClientService>,
     mailer: Arc<dyn MailerService>,
     config: Arc<dyn ConfigService>,
 }
@@ -101,6 +105,7 @@ impl EmailAuthServiceImpl {
         account_emails_repo: Arc<dyn AccountEmailsRepo>,
         email_tokens_repo: Arc<dyn EmailTokensRepo>,
         sessions_repo: Arc<dyn SessionsRepo>,
+        mail_client: Arc<dyn MailClientService>,
         mailer: Arc<dyn MailerService>,
         config: Arc<dyn ConfigService>,
     ) -> Self {
@@ -110,6 +115,7 @@ impl EmailAuthServiceImpl {
             account_emails_repo,
             email_tokens_repo,
             sessions_repo,
+            mail_client,
             mailer,
             config,
         }
@@ -271,6 +277,42 @@ impl EmailAuthServiceImpl {
         self.email_tokens_repo.insert(token).await?;
 
         let action_link = Self::build_action_link(base_url, &raw_token, rewrite);
+        let destination_sentence = rewrite
+            .filter(|value| !value.is_empty())
+            .map(|value| format!("After you continue, we will send you back to {value}."))
+            .unwrap_or_else(|| {
+                "If no destination was provided, we will send you to your auth profile page."
+                    .to_owned()
+            });
+        let expires_in = Self::expiry_label(self.config.email_token_ttl_secs());
+
+        let grpc_result = self
+            .mail_client
+            .send_template_email(
+                if purpose == VERIFY_PURPOSE {
+                    "auth.verify_email"
+                } else {
+                    "auth.login_link"
+                },
+                &email.email_normalized,
+                None,
+                vec![
+                    ("action_url".to_owned(), action_link.clone()),
+                    ("raw_token".to_owned(), raw_token.clone()),
+                    (
+                        "destination_sentence".to_owned(),
+                        destination_sentence.clone(),
+                    ),
+                    ("expires_in".to_owned(), expires_in.clone()),
+                ],
+                vec![("auth_purpose".to_owned(), purpose.to_owned())],
+            )
+            .await;
+
+        if grpc_result.is_ok() {
+            return Ok(());
+        }
+
         let template = Self::build_email_template(
             purpose,
             &email.email_normalized,

@@ -9,6 +9,7 @@ mod config;
 mod db;
 mod entities;
 mod handler;
+mod mail_proto;
 mod openapi;
 mod repo;
 mod schema;

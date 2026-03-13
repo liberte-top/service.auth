@@ -8,6 +8,8 @@ axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1"
+tonic = { version = "0.12", features = ["transport"] }
+prost = "0.13"
 sea-orm = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-postgres", "macros", "with-chrono", "with-uuid", "with-json"] }
 sea-orm-migration = { version = "1.1", default-features = false, features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 uuid = { version = "1", features = ["serde", "v4"] }
@@ -30,3 +32,7 @@ lto = "fat"
 opt-level = "z"
 panic = "abort"
 strip = "symbols"
+
+[build-dependencies]
+tonic-build = "0.12"
+protoc-bin-vendored = "3"

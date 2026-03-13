@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package liberte.mail.v1;
+
+service MailService {
+  rpc SendTemplateEmail(SendTemplateEmailRequest) returns (SendTemplateEmailResponse);
+}
+
+message Recipient {
+  string email = 1;
+  string display_name = 2;
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
+
+message SendTemplateEmailRequest {
+  string template_id = 1;
+  string locale = 2;
+  Recipient recipient = 3;
+  repeated KeyValue variables = 4;
+  repeated KeyValue metadata = 5;
+  string idempotency_key = 6;
+}
+
+message SendTemplateEmailResponse {
+  string message_id = 1;
+  string provider = 2;
+  string status = 3;
+}
