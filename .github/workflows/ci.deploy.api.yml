@@ -17,7 +17,7 @@ on:
 
 jobs:
   build-test-api:
-    runs-on: linux-x64-8c
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
