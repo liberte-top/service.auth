@@ -103,11 +103,13 @@ fn login_page_url(
     verified: bool,
     rewrite: Option<&str>,
 ) -> String {
+    let path = if mode == "register" { "register" } else { "login" };
     let mut url = Url::parse(state.config().forwardauth_login_url())
-        .unwrap_or_else(|_| Url::parse("https://auth.liberte.top/").unwrap());
+        .ok()
+        .and_then(|base| base.join(path).ok())
+        .unwrap_or_else(|| Url::parse(&format!("https://auth.liberte.top/{path}")).unwrap());
     {
         let mut query = url.query_pairs_mut();
-        query.append_pair("mode", mode);
         if verified {
             query.append_pair("verified", "1");
         }

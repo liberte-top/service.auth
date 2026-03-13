@@ -15,7 +15,7 @@
 
 <main class="page logout-page">
   <section class="simple-panel">
-    <a class="brand-link" href="/">liberte.top</a>
+    <a class="brand-link" href="/login">liberte.top</a>
 
     <section class="card logout-card">
       <p class="section-label">Logout</p>
@@ -24,12 +24,12 @@
 
       {#if signedOut}
         <div class="actions compact-actions">
-          <a class="button-link" href="/">Back to sign in</a>
+          <a class="button-link" href="/login">Back to sign in</a>
         </div>
       {:else}
         <form class="actions compact-actions" method="POST">
           <button type="submit">Log out</button>
-          <a class="button-link secondary-link" href="/">Cancel</a>
+          <a class="button-link secondary-link" href="/login">Cancel</a>
         </form>
       {/if}
     </section>

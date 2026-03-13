@@ -13,7 +13,7 @@
 
 <main class="page profile-page">
   <section class="simple-panel">
-    <a class="brand-link" href="/">liberte.top</a>
+    <a class="brand-link" href="/login">liberte.top</a>
 
     <section class="card profile-card-simple">
       <p class="section-label">Profile</p>

@@ -76,7 +76,7 @@
 
 <main class="page auth-page">
   <section class="flow-shell">
-    <a class="brand-link" href="/">liberte.top</a>
+    <a class="brand-link" href="/login">liberte.top</a>
 
     <section class="card flow-card">
       <div class="card-header">
@@ -95,7 +95,7 @@
 
       <div class="actions">
         <a class="button-link" href={destination}>{config.action}</a>
-        <a class="button-link secondary-link" href="/">{config.fallback}</a>
+        <a class="button-link secondary-link" href="/login">{config.fallback}</a>
       </div>
 
       <div class="flow-meta">
