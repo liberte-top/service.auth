@@ -1,15 +1,21 @@
-# Build stage
-FROM rust:1.91-bookworm AS builder
+# Base cargo-chef toolchain stage
+FROM lukemathwalker/cargo-chef:latest-rust-1.91-bookworm AS chef
 WORKDIR /app
 
+# Plan dependency graph from manifests
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Build dependency layers separately for better cache reuse
+FROM chef AS builder
 ARG APP_BUILD_SHA=unknown
 ARG APP_BUILD_TIMESTAMP=unknown
 ENV APP_BUILD_SHA=$APP_BUILD_SHA
 ENV APP_BUILD_TIMESTAMP=$APP_BUILD_TIMESTAMP
-
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-RUN cargo fetch
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --locked --recipe-path recipe.json
+COPY . .
 RUN cargo build --release --locked
 
 # Runtime stage (distroless for smaller footprint)
