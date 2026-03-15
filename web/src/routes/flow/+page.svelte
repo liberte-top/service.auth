@@ -1,5 +1,10 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { Alert, Card, CardHeader, LinkButton, SectionLabel } from "@liberte-top/components";
+  import BrandLink from "$lib/layout/BrandLink.svelte";
+  import PageRoot from "$lib/layout/PageRoot.svelte";
+  import Panel from "$lib/layout/Panel.svelte";
+  import Stack from "$lib/layout/Stack.svelte";
   import { translate } from "$lib/i18n/copy";
   import { onMount } from "svelte";
   import type { PageData } from "./$types";
@@ -75,40 +80,62 @@
   <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
-<main class="page auth-page">
-  <section class="flow-shell">
-    <a class="brand-link" href="/login">liberte.top</a>
+<PageRoot>
+  <Panel>
+    <BrandLink>liberte.top</BrandLink>
 
-    <section class="card flow-card">
-      <div class="card-header">
-        <p class="section-label">{config.eyebrow}</p>
-        <h1>{config.title}</h1>
-        <p>{config.copy}</p>
-      </div>
+    <Card>
+      <Stack gap="12px">
+        <CardHeader>
+          <SectionLabel>{config.eyebrow}</SectionLabel>
+          <h1>{config.title}</h1>
+          <p>{config.copy}</p>
+        </CardHeader>
 
-      <p class={`banner ${config.tone}`} role={config.tone === "error" ? "alert" : "status"} aria-live={config.autoRedirect ? "polite" : config.tone === "error" ? "assertive" : "polite"}>
-        {#if config.autoRedirect}
-          {translate(data.language, "auth.flow.redirecting", { countdown })}
-        {:else}
-          {translate(data.language, "auth.flow.retry")}
-        {/if}
-      </p>
+        <Alert class="banner" tone={config.tone} role={config.tone === "error" ? "alert" : "status"} aria-live={config.autoRedirect ? "polite" : config.tone === "error" ? "assertive" : "polite"}>
+          {#if config.autoRedirect}
+            {translate(data.language, "auth.flow.redirecting", { countdown })}
+          {:else}
+            {translate(data.language, "auth.flow.retry")}
+          {/if}
+        </Alert>
 
-      <div class="actions">
-        <a class="button-link" href={destination}>{config.action}</a>
-        <a class="button-link secondary-link" href="/login">{config.fallback}</a>
-      </div>
+        <Stack gap="12px">
+          <LinkButton block href={destination}>{config.action}</LinkButton>
+          <LinkButton variant="secondary" block href="/login">{config.fallback}</LinkButton>
+        </Stack>
 
-      <div class="flow-meta">
-        {#if data.email}
-          <p class="flow-copy">{translate(data.language, "auth.flow.email")}: <strong>{data.email}</strong></p>
-        {/if}
-        <p class="flow-copy">{translate(data.language, "auth.flow.destination")}: <code>{destination}</code></p>
-        {#if data.traceId}
-          <p class="flow-copy">{translate(data.language, "auth.flow.traceLabel")}: <code>{data.traceId}</code></p>
-          <p class="flow-copy">{translate(data.language, "auth.flow.traceHint")}</p>
-        {/if}
-      </div>
-    </section>
-  </section>
-</main>
+        <div class="flow-meta">
+          {#if data.email}
+            <p class="flow-copy">{translate(data.language, "auth.flow.email")}: <strong>{data.email}</strong></p>
+          {/if}
+          <p class="flow-copy">{translate(data.language, "auth.flow.destination")}: <code>{destination}</code></p>
+          {#if data.traceId}
+            <p class="flow-copy">{translate(data.language, "auth.flow.traceLabel")}: <code>{data.traceId}</code></p>
+            <p class="flow-copy">{translate(data.language, "auth.flow.traceHint")}</p>
+          {/if}
+        </div>
+      </Stack>
+    </Card>
+  </Panel>
+</PageRoot>
+
+<style>
+  .flow-copy {
+    color: var(--lt-color-text-muted);
+    line-height: 1.5;
+  }
+
+  :global(.banner) {
+    margin-bottom: 16px;
+  }
+
+  .flow-copy {
+    margin-bottom: 4px;
+  }
+
+  .flow-meta {
+    padding-top: 4px;
+    border-top: 1px solid var(--lt-color-border);
+  }
+</style>

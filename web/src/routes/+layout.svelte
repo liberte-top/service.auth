@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "../app.css";
+  import "@liberte-top/components/theme.css";
   import LanguageSwitcher from "$lib/i18n/LanguageSwitcher.svelte";
 
   import type { LayoutData } from "./$types";

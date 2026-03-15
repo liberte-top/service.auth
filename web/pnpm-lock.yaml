@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@liberte-top/components':
+        specifier: file:../../packages/npm/components
+        version: file:../../packages/npm/components(svelte@5.38.0)
       '@liberte-top/shared':
         specifier: file:../../packages/npm/shared
         version: file:../../packages/npm/shared
@@ -357,6 +360,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@liberte-top/components@file:../../packages/npm/components':
+    resolution: {directory: ../../packages/npm/components, type: directory}
+    peerDependencies:
+      svelte: ^5.38.0
 
   '@liberte-top/shared@file:../../packages/npm/shared':
     resolution: {directory: ../../packages/npm/shared, type: directory}
@@ -1602,6 +1610,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@liberte-top/components@file:../../packages/npm/components(svelte@5.38.0)':
+    dependencies:
+      svelte: 5.38.0
 
   '@liberte-top/shared@file:../../packages/npm/shared':
     dependencies:

@@ -1,4 +1,10 @@
 <script lang="ts">
+  import { Alert, Button, Card, CardHeader, Field, Input, LinkButton } from "@liberte-top/components";
+  import BrandLink from "$lib/layout/BrandLink.svelte";
+  import CenteredMutedText from "$lib/layout/CenteredMutedText.svelte";
+  import PageRoot from "$lib/layout/PageRoot.svelte";
+  import Panel from "$lib/layout/Panel.svelte";
+  import Stack from "$lib/layout/Stack.svelte";
   import { translate } from "$lib/i18n/copy";
   import type { LiberteLanguage } from "$lib/i18n/shared";
 
@@ -70,68 +76,68 @@
   <link rel="canonical" href={canonical} />
 </svelte:head>
 
-<main class="page auth-page">
-  <section class="stack auth-stack">
-    <a class="brand-link" href="/login">liberte.top</a>
+<PageRoot>
+  <Panel>
+    <BrandLink>liberte.top</BrandLink>
 
     {#if authContext.authenticated}
-      <section class="card auth-card-shell status-card">
-        <div class="card-header">
-          <h1>{translate(language, "auth.common.signedIn")}</h1>
-          <p>{authContext.email || translate(language, "auth.common.activeSession")}</p>
-        </div>
+      <Card>
+        <Stack gap="4px">
+          <CardHeader>
+            <h1>{translate(language, "auth.common.signedIn")}</h1>
+            <p>{authContext.email || translate(language, "auth.common.activeSession")}</p>
+          </CardHeader>
 
-        <div class="actions compact-actions">
-          <a class="button-link" href={currentRewrite || "/profile"}>{currentRewrite ? translate(language, "auth.common.continue") : translate(language, "auth.common.openProfile")}</a>
-          <form method="POST" action="/logout">
-            <button class="secondary" type="submit">{translate(language, "auth.common.logout")}</button>
-          </form>
-        </div>
-      </section>
+          <Stack gap="12px" marginTop="4px">
+            <LinkButton block href={currentRewrite || "/profile"}>{currentRewrite ? translate(language, "auth.common.continue") : translate(language, "auth.common.openProfile")}</LinkButton>
+            <form method="POST" action="/logout">
+              <Button variant="secondary" block type="submit">{translate(language, "auth.common.logout")}</Button>
+            </form>
+          </Stack>
+        </Stack>
+      </Card>
     {:else}
-      <section class="card auth-card-shell">
-        <div class="card-header">
+      <Card>
+        <CardHeader>
           <h1>{translate(language, currentMode === "register" ? "auth.register.title" : "auth.login.title")}</h1>
           <p>{translate(language, currentMode === "register" ? "auth.register.summary" : "auth.login.summary")}</p>
-        </div>
+        </CardHeader>
 
         {#if banner}
-          <p class={`banner ${bannerTone}`} role={bannerTone === "error" ? "alert" : "status"} aria-live={bannerTone === "error" ? "assertive" : "polite"}>
+          <Alert class="banner" tone={bannerTone} role={bannerTone === "error" ? "alert" : "status"} aria-live={bannerTone === "error" ? "assertive" : "polite"}>
             {banner}
-          </p>
+          </Alert>
         {/if}
 
         <form class="form-fields" method="POST" action={primaryAction}>
           <input type="hidden" name="rewrite" value={currentRewrite} />
           <input type="hidden" name="intent" value="register" />
 
-          <label>
-            {translate(language, "auth.common.emailLabel")}
-            <input name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email" required placeholder="you@example.com" value={currentEmail} />
-          </label>
+          <Field label={translate(language, "auth.common.emailLabel")} required>
+            <Input name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email" required placeholder="you@example.com" value={currentEmail} />
+          </Field>
 
           {#if currentMode === "register"}
-            <label>
-              {translate(language, "auth.common.nameLabel")}
-              <input name="display_name" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder={translate(language, "auth.common.namePlaceholder")} value={displayName} />
-            </label>
+            <Field label={translate(language, "auth.common.nameLabel")} optional={translate(language, "auth.common.namePlaceholder")}>
+              <Input name="display_name" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder={translate(language, "auth.common.namePlaceholder")} value={displayName} />
+            </Field>
           {/if}
 
-          <button type="submit">{translate(language, currentMode === "register" ? "auth.register.submit" : "auth.login.submit")}</button>
+          <Button block type="submit">{translate(language, currentMode === "register" ? "auth.register.submit" : "auth.login.submit")}</Button>
         </form>
 
         {#if currentMode === "register" && registrationRequested}
-          <form class="actions compact-actions" method="POST" action={primaryAction}>
+          <form class="resend-form" method="POST" action={primaryAction}>
             <input type="hidden" name="email" value={currentEmail} />
             <input type="hidden" name="display_name" value={displayName} />
             <input type="hidden" name="rewrite" value={currentRewrite} />
             <input type="hidden" name="intent" value="resend" />
-            <button class="secondary" type="submit">{translate(language, "auth.register.resend")}</button>
+            <Button variant="secondary" block type="submit">{translate(language, "auth.register.resend")}</Button>
           </form>
         {/if}
-      </section>
+      </Card>
 
-      <p class="switch-copy">
+      <CenteredMutedText>
         {#if currentMode === "login"}
           {translate(language, "auth.login.switchPrompt")}
           <a href={alternateHref}>{translate(language, "auth.login.switchAction")}</a>
@@ -139,11 +145,31 @@
           {translate(language, "auth.register.switchPrompt")}
           <a href={alternateHref}>{translate(language, "auth.register.switchAction")}</a>
         {/if}
-      </p>
+      </CenteredMutedText>
 
-      <p class="support-copy">
+      <CenteredMutedText>
         {currentRewrite ? translate(language, "auth.common.supportWithRewrite") : translate(language, "auth.common.supportDefault")}
-      </p>
+      </CenteredMutedText>
     {/if}
-  </section>
-</main>
+  </Panel>
+</PageRoot>
+
+<style>
+  .form-fields,
+  .resend-form {
+    display: grid;
+  }
+
+  .form-fields {
+    gap: 16px;
+  }
+
+  .resend-form {
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  :global(.banner) {
+    margin-bottom: 16px;
+  }
+</style>

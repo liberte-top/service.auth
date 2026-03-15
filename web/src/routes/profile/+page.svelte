@@ -1,4 +1,11 @@
 <script lang="ts">
+  import { Button, Card, SectionLabel } from "@liberte-top/components";
+  import BrandLink from "$lib/layout/BrandLink.svelte";
+  import DisplayTitle from "$lib/layout/DisplayTitle.svelte";
+  import MutedText from "$lib/layout/MutedText.svelte";
+  import PageRoot from "$lib/layout/PageRoot.svelte";
+  import Panel from "$lib/layout/Panel.svelte";
+  import Stack from "$lib/layout/Stack.svelte";
   import { translate } from "$lib/i18n/copy";
   import type { PageData } from "./$types";
 
@@ -12,18 +19,31 @@
   <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
-<main class="page profile-page">
-  <section class="simple-panel">
-    <a class="brand-link" href="/login">liberte.top</a>
+<PageRoot>
+  <Panel>
+    <BrandLink>liberte.top</BrandLink>
 
-    <section class="card profile-card-simple">
-      <p class="section-label">{translate(data.language, "auth.profile.title")}</p>
-      <h1>{data.email}</h1>
-      <p class="muted">{translate(data.language, "auth.profile.subtitle")}</p>
+    <Card>
+      <Stack gap="12px">
+        <SectionLabel>{translate(data.language, "auth.profile.title")}</SectionLabel>
+        <DisplayTitle>{data.email}</DisplayTitle>
+        <MutedText>{translate(data.language, "auth.profile.subtitle")}</MutedText>
 
-      <form class="actions compact-actions" method="POST" action="/logout">
-        <button class="secondary" type="submit">{translate(data.language, "auth.common.logout")}</button>
-      </form>
-    </section>
-  </section>
-</main>
+        <form class="actions compact-actions" method="POST" action="/logout">
+          <Button variant="secondary" block type="submit">{translate(data.language, "auth.common.logout")}</Button>
+        </form>
+      </Stack>
+    </Card>
+  </Panel>
+</PageRoot>
+
+<style>
+  .actions {
+    display: grid;
+    gap: 12px;
+  }
+
+  .compact-actions {
+    margin-top: 4px;
+  }
+</style>
