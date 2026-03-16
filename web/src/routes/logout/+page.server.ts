@@ -1,32 +1,63 @@
 import type { Actions, PageServerLoad } from "./$types";
-import type { PreferencesResponse } from "$openapi/client";
-import { apiJson } from "$lib/server/api";
-import { clearAuthCookie, clearAuthCookieFromHeader } from "$lib/server/cookies";
+import { getPreferences } from "$lib/server/auth-api";
+import type { Cookies } from "@sveltejs/kit";
 
-async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
-  try {
-    const response = await fetch("/api/v1/auth/logout", {
-      method: "POST",
-    });
-
-    const setCookie = response.headers.get("set-cookie");
-    if (setCookie) {
-      clearAuthCookieFromHeader(cookies, setCookie);
-    } else {
-      clearAuthCookie(cookies);
-    }
-  } catch {
-    clearAuthCookie(cookies);
-  }
+function clearAuthCookie(cookies: Cookies) {
+  cookies.set(process.env.FORWARDAUTH_SESSION_COOKIE_NAME || "liberte_session", "", {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    expires: new Date(0),
+    domain: process.env.FORWARDAUTH_SESSION_COOKIE_DOMAIN || undefined,
+  });
 }
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
-  const preferences = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
-  return {
-    language: preferences.data?.language || "en",
-    canonical: `${url.origin}/logout`,
-  };
-};
+function clearAuthCookieFromHeader(cookies: Cookies, setCookieHeader: string) {
+  const [cookiePart, ...attributeParts] = setCookieHeader.split(";");
+  const [rawName] = cookiePart.split("=");
+  const name = rawName?.trim();
+
+  if (!name) {
+    clearAuthCookie(cookies);
+    return;
+  }
+
+  let domain: string | undefined;
+  let path = "/";
+
+  for (const part of attributeParts) {
+    const [rawKey, rawValue] = part.split("=");
+    const key = rawKey?.trim().toLowerCase();
+    const value = rawValue?.trim();
+
+    if (key === "domain" && value) domain = value;
+    if (key === "path" && value) path = value;
+  }
+
+  cookies.set(name, "", {
+    path,
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    expires: new Date(0),
+    domain,
+  });
+}
+
+async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
+  const response = await fetch("/api/v1/auth/logout", {
+    method: "POST",
+  });
+
+  const setCookie = response.headers.get("set-cookie");
+  if (!response.ok || !setCookie) {
+    clearAuthCookie(cookies);
+    throw new Error(`logout failed with status ${response.status}`);
+  }
+
+  clearAuthCookieFromHeader(cookies, setCookie);
+}
 
 export const actions: Actions = {
   default: async ({ cookies, fetch }) => {
@@ -35,5 +66,13 @@ export const actions: Actions = {
     return {
       success: true,
     };
-  },
+  }
+};
+
+export const load: PageServerLoad = async ({ url, fetch }) => {
+  const { data: preferences } = await getPreferences(fetch);
+  return {
+    language: preferences.language,
+    canonical: `${url.origin}/logout`,
+  };
 };

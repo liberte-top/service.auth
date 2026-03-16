@@ -1,5 +1,13 @@
-import { apiOrigin } from "$lib/server/api";
 import type { RequestHandler } from "./$types";
+
+function apiOrigin() {
+  const origin = process.env.AUTH_API_INTERNAL_URL || process.env.WEB_VITE_AUTH_API_BASE_URL;
+  if (!origin) {
+    throw new Error("AUTH_API_INTERNAL_URL is required");
+  }
+
+  return origin;
+}
 
 async function proxy({ fetch, params, request, url }: Parameters<RequestHandler>[0]) {
   const target = new URL(`/api/${params.path}`, apiOrigin());
