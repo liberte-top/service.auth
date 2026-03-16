@@ -1,11 +1,15 @@
 import { env } from "$env/dynamic/private";
-import { getPreferences } from "$lib/server/auth-api";
+import { openapi } from "$openapi";
 import pkg from "../../package.json";
 import versionInfo from "../../public/version.json";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ fetch }) => {
-  const { data: preferences } = await getPreferences(fetch);
+  const api = openapi.create(fetch);
+  const [{ data: preferences }, { data: preferenceOptions }] = await Promise.all([
+    api.getPreferences(),
+    api.getPreferenceOptions(),
+  ]);
   return {
     buildInfo: {
       version: versionInfo.version || pkg.version,
@@ -13,5 +17,6 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
       timestamp: versionInfo.built_at || env.APP_BUILD_TIMESTAMP || "unknown",
     },
     preferences: preferences,
+    preferenceOptions,
   };
 };

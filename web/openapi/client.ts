@@ -87,10 +87,13 @@ export interface Health {
   status: string;
 }
 
+export interface PreferenceOptionsResponse {
+  languages: string[];
+  themes: string[];
+}
+
 export interface PreferencesResponse {
   language: string;
-  supported_languages: string[];
-  supported_themes: string[];
   theme: string;
 }
 
@@ -267,7 +270,16 @@ const updatePreferences = (
       );
     }
   
-return {createAccount,getAccount,deleteAccount,updateAccount,context,requestEmailLogin,completeEmailLogin,registerEmail,verifyEmail,resendVerifyEmail,health,getPreferences,updatePreferences}};
+const getPreferenceOptions = (
+    
+ ) => {
+      return customInstance<PreferenceOptionsResponse>(
+      {url: `/api/v1/preferences/options`, method: 'GET'
+    },
+      );
+    }
+  
+return {createAccount,getAccount,deleteAccount,updateAccount,context,requestEmailLogin,completeEmailLogin,registerEmail,verifyEmail,resendVerifyEmail,health,getPreferences,updatePreferences,getPreferenceOptions}};
 export type CreateAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['createAccount']>>>
 export type GetAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getAccount']>>>
 export type DeleteAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['deleteAccount']>>>
@@ -281,3 +293,4 @@ export type ResendVerifyEmailResult = NonNullable<Awaited<ReturnType<ReturnType<
 export type HealthResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['health']>>>
 export type GetPreferencesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getPreferences']>>>
 export type UpdatePreferencesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['updatePreferences']>>>
+export type GetPreferenceOptionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getPreferenceOptions']>>>

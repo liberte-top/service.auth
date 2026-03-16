@@ -1,11 +1,12 @@
 import { ensure } from "@liberte-top/shared/ensure";
 import { AppError } from "$lib/error";
+import { openapi } from "$openapi";
 import { redirect } from "@sveltejs/kit";
-import { getAuthContext, getPreferences } from "$lib/server/auth-api";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ url, fetch }) => {
-  const [{ data }, { data: preferences }] = await Promise.all([getAuthContext(fetch), getPreferences(fetch)]);
+  const api = openapi.create(fetch);
+  const [{ data }, { data: preferences }] = await Promise.all([api.getAuthContext(), api.getPreferences()]);
   const language = preferences.language;
 
   if (!data.authenticated) {

@@ -1,4 +1,6 @@
-import type { LiberteLanguage } from "$lib/preferences/shared";
+import type { PreferencesResponse } from "$openapi/client";
+
+type LiberteLanguage = PreferencesResponse["language"];
 
 const copy = {
   en: {

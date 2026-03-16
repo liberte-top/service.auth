@@ -19,8 +19,12 @@ const THEME_COOKIE: &str = "liberte_theme";
 pub struct PreferencesResponse {
     pub language: String,
     pub theme: String,
-    pub supported_languages: Vec<String>,
-    pub supported_themes: Vec<String>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct PreferenceOptionsResponse {
+    pub languages: Vec<String>,
+    pub themes: Vec<String>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -68,8 +72,13 @@ fn preferences_from_headers(headers: &HeaderMap) -> PreferencesResponse {
     PreferencesResponse {
         language: normalize_language(cookie_value(headers, LANGUAGE_COOKIE).as_deref()).to_owned(),
         theme: normalize_theme(cookie_value(headers, THEME_COOKIE).as_deref()).to_owned(),
-        supported_languages: vec!["en".to_owned(), "zh-CN".to_owned()],
-        supported_themes: vec!["system".to_owned(), "light".to_owned(), "dark".to_owned()],
+    }
+}
+
+fn preference_options() -> PreferenceOptionsResponse {
+    PreferenceOptionsResponse {
+        languages: vec!["en".to_owned(), "zh-CN".to_owned()],
+        themes: vec!["system".to_owned(), "light".to_owned(), "dark".to_owned()],
     }
 }
 
@@ -86,6 +95,16 @@ fn preference_cookie(state: &AppState, name: &str, value: &str) -> String {
     }
 
     cookie.build().to_string()
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/preferences/options",
+    responses((status = 200, description = "Supported cross-app preference options", body = PreferenceOptionsResponse)),
+    tag = "preferences"
+)]
+pub async fn get_preference_options() -> impl IntoResponse {
+    Json(preference_options())
 }
 
 #[utoipa::path(
@@ -107,10 +126,8 @@ pub async fn get_preferences(headers: HeaderMap) -> impl IntoResponse {
 )]
 pub async fn update_preferences(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
     Json(payload): Json<UpdatePreferencesRequest>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let current = preferences_from_headers(&headers);
     let language = normalize_language(payload.language.as_deref()).to_owned();
     let theme = normalize_theme(payload.theme.as_deref()).to_owned();
 
@@ -131,14 +148,13 @@ pub async fn update_preferences(
         Json(PreferencesResponse {
             language,
             theme,
-            supported_languages: current.supported_languages,
-            supported_themes: current.supported_themes,
         }),
     ))
 }
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/api/v1/preferences/options", get(get_preference_options))
         .route(
             "/api/v1/preferences",
             get(get_preferences).post(update_preferences),

@@ -5,7 +5,7 @@ use crate::{
     handler::{
         accounts::{AccountResponse, CreateAccount, UpdateAccount},
         health::Health,
-        preferences::{PreferencesResponse, UpdatePreferencesRequest},
+        preferences::{PreferenceOptionsResponse, PreferencesResponse, UpdatePreferencesRequest},
         public_auth::{CompleteLoginRequest, EmailOnlyRequest, RegisterEmailRequest, VerifyQuery},
     },
     service::{
@@ -24,6 +24,7 @@ use crate::{
         handler::public_auth::verify_email,
         handler::public_auth::request_email_login,
         handler::public_auth::complete_email_login,
+        handler::preferences::get_preference_options,
         handler::preferences::get_preferences,
         handler::preferences::update_preferences,
         handler::accounts::create_account,
@@ -38,6 +39,7 @@ use crate::{
         EmailOnlyRequest,
         VerifyQuery,
         CompleteLoginRequest,
+        PreferenceOptionsResponse,
         PreferencesResponse,
         UpdatePreferencesRequest,
         EmailActionAccepted,

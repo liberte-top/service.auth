@@ -16,5 +16,5 @@
   <meta name="liberte:build-timestamp" content={data.buildInfo.timestamp} />
 </svelte:head>
 
-<LanguageSwitcher language={data.preferences.language} theme={data.preferences.theme} supportedLanguages={data.preferences.supported_languages} />
+<LanguageSwitcher language={data.preferences.language} theme={data.preferences.theme} supportedLanguages={data.preferenceOptions.languages} />
 <slot />

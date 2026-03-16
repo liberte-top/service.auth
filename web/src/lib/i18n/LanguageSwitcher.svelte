@@ -1,34 +1,33 @@
 <script lang="ts">
-  import { getServiceAuthApi } from "$openapi";
-  import type { LiberteLanguage, LiberteTheme } from "$lib/preferences/shared";
-
-  const authApi = getServiceAuthApi();
+  import { openapi } from "$openapi";
+  import type { PreferenceOptionsResponse, PreferencesResponse } from "$openapi/client";
 
   let {
     language,
     theme,
     supportedLanguages,
   }: {
-    language: LiberteLanguage;
-    theme: LiberteTheme;
-    supportedLanguages: readonly LiberteLanguage[];
+    language: PreferencesResponse["language"];
+    theme: PreferencesResponse["theme"];
+    supportedLanguages: PreferenceOptionsResponse["languages"];
   } = $props();
 
   let busy = $state(false);
 
-  async function setLanguage(nextLanguage: LiberteLanguage) {
+  async function setLanguage(nextLanguage: PreferencesResponse["language"]) {
     if (busy || nextLanguage === language) return;
     busy = true;
 
     try {
-      await authApi.updatePreferences({ language: nextLanguage, theme });
+      const api = openapi.create(fetch);
+      await api.updatePreferences({ language: nextLanguage, theme });
       window.location.reload();
     } finally {
       busy = false;
     }
   }
 
-  function labelFor(language: LiberteLanguage) {
+  function labelFor(language: PreferencesResponse["language"]) {
     return language === "zh-CN" ? "中文" : "EN";
   }
 </script>

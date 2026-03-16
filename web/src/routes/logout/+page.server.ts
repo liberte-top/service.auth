@@ -1,7 +1,7 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { ensure } from "@liberte-top/shared/ensure";
 import { AppError } from "$lib/error";
-import { getPreferences } from "$lib/server/auth-api";
+import { openapi } from "$openapi";
 import type { Cookies } from "@sveltejs/kit";
 
 function clearAuthCookie(cookies: Cookies) {
@@ -65,7 +65,8 @@ export const actions: Actions = {
 };
 
 export const load: PageServerLoad = async ({ url, fetch }) => {
-  const { data: preferences } = await getPreferences(fetch);
+  const api = openapi.create(fetch);
+  const { data: preferences } = await api.getPreferences();
   return {
     language: preferences.language,
     canonical: `${url.origin}/logout`,
