@@ -19,8 +19,6 @@ use crate::{
     telemetry::TraceContext,
 };
 
-const LIBERTE_LANGUAGE_HEADER: &str = "x-liberte-language";
-
 fn normalize_language(value: Option<&str>) -> &'static str {
     match value.unwrap_or("en").trim().to_ascii_lowercase().as_str() {
         "zh" | "zh-cn" => "zh-CN",
@@ -28,12 +26,23 @@ fn normalize_language(value: Option<&str>) -> &'static str {
     }
 }
 
+fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|raw| {
+            raw.split(';').find_map(|item| {
+                let mut parts = item.trim().splitn(2, '=');
+                match (parts.next(), parts.next()) {
+                    (Some(key), Some(value)) if key.trim() == name => Some(value.trim().to_owned()),
+                    _ => None,
+                }
+            })
+        })
+}
+
 fn request_language(headers: &HeaderMap) -> &'static str {
-    normalize_language(
-        headers
-            .get(LIBERTE_LANGUAGE_HEADER)
-            .and_then(|value| value.to_str().ok()),
-    )
+    normalize_language(cookie_value(headers, "liberte_language").as_deref())
 }
 
 #[derive(Deserialize, ToSchema)]

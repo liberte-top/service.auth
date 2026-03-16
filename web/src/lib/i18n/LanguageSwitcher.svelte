@@ -1,11 +1,16 @@
 <script lang="ts">
-  import type { LiberteLanguage } from "$lib/i18n/shared";
+  import { getServiceAuthApi } from "$openapi";
+  import type { LiberteLanguage, LiberteTheme } from "$lib/preferences/shared";
+
+  const authApi = getServiceAuthApi();
 
   let {
     language,
+    theme,
     supportedLanguages,
   }: {
     language: LiberteLanguage;
+    theme: LiberteTheme;
     supportedLanguages: readonly LiberteLanguage[];
   } = $props();
 
@@ -16,18 +21,7 @@
     busy = true;
 
     try {
-      const response = await fetch("/api/v1/preferences/language", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ language: nextLanguage }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`language update failed: ${response.status}`);
-      }
-
+      await authApi.updatePreferences({ language: nextLanguage, theme });
       window.location.reload();
     } finally {
       busy = false;

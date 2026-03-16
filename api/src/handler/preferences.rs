@@ -1,0 +1,147 @@
+use axum::{
+    extract::State,
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::IntoResponse,
+    routing::get,
+    Json, Router,
+};
+use cookie::Cookie;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use utoipa::ToSchema;
+
+use crate::state::AppState;
+
+const LANGUAGE_COOKIE: &str = "liberte_language";
+const THEME_COOKIE: &str = "liberte_theme";
+
+#[derive(Serialize, ToSchema)]
+pub struct PreferencesResponse {
+    pub language: String,
+    pub theme: String,
+    pub supported_languages: Vec<String>,
+    pub supported_themes: Vec<String>,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct UpdatePreferencesRequest {
+    pub language: Option<String>,
+    pub theme: Option<String>,
+}
+
+fn normalize_language(value: Option<&str>) -> &'static str {
+    match value.unwrap_or("en").trim().to_ascii_lowercase().as_str() {
+        "zh" | "zh-cn" => "zh-CN",
+        _ => "en",
+    }
+}
+
+fn normalize_theme(value: Option<&str>) -> &'static str {
+    match value
+        .unwrap_or("system")
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "light" => "light",
+        "dark" => "dark",
+        _ => "system",
+    }
+}
+
+fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|raw| {
+            raw.split(';').find_map(|item| {
+                let mut parts = item.trim().splitn(2, '=');
+                match (parts.next(), parts.next()) {
+                    (Some(key), Some(value)) if key.trim() == name => Some(value.trim().to_owned()),
+                    _ => None,
+                }
+            })
+        })
+}
+
+fn preferences_from_headers(headers: &HeaderMap) -> PreferencesResponse {
+    PreferencesResponse {
+        language: normalize_language(cookie_value(headers, LANGUAGE_COOKIE).as_deref()).to_owned(),
+        theme: normalize_theme(cookie_value(headers, THEME_COOKIE).as_deref()).to_owned(),
+        supported_languages: vec!["en".to_owned(), "zh-CN".to_owned()],
+        supported_themes: vec!["system".to_owned(), "light".to_owned(), "dark".to_owned()],
+    }
+}
+
+fn preference_cookie(state: &AppState, name: &str, value: &str) -> String {
+    let mut cookie = Cookie::build((name, value.to_owned()))
+        .path("/")
+        .http_only(true)
+        .secure(true)
+        .same_site(cookie::SameSite::Lax)
+        .max_age(cookie::time::Duration::days(365));
+
+    if let Some(domain) = state.config().forwardauth_session_cookie_domain() {
+        cookie = cookie.domain(domain.to_owned());
+    }
+
+    cookie.build().to_string()
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/preferences",
+    responses((status = 200, description = "Current cross-app preferences", body = PreferencesResponse)),
+    tag = "preferences"
+)]
+pub async fn get_preferences(headers: HeaderMap) -> impl IntoResponse {
+    Json(preferences_from_headers(&headers))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/preferences",
+    request_body = UpdatePreferencesRequest,
+    responses((status = 200, description = "Updated cross-app preferences", body = PreferencesResponse)),
+    tag = "preferences"
+)]
+pub async fn update_preferences(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(payload): Json<UpdatePreferencesRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let current = preferences_from_headers(&headers);
+    let language = normalize_language(payload.language.as_deref()).to_owned();
+    let theme = normalize_theme(payload.theme.as_deref()).to_owned();
+
+    let mut response_headers = HeaderMap::new();
+    response_headers.append(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&preference_cookie(&state, LANGUAGE_COOKIE, &language))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    );
+    response_headers.append(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&preference_cookie(&state, THEME_COOKIE, &theme))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    );
+
+    Ok((
+        response_headers,
+        Json(PreferencesResponse {
+            language,
+            theme,
+            supported_languages: current.supported_languages,
+            supported_themes: current.supported_themes,
+        }),
+    ))
+}
+
+pub fn routes(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route(
+            "/api/v1/preferences",
+            get(get_preferences).post(update_preferences),
+        )
+        .with_state(state)
+}

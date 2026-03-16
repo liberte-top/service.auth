@@ -5,6 +5,7 @@ use crate::{
     handler::{
         accounts::{AccountResponse, CreateAccount, UpdateAccount},
         health::Health,
+        preferences::{PreferencesResponse, UpdatePreferencesRequest},
         public_auth::{CompleteLoginRequest, EmailOnlyRequest, RegisterEmailRequest, VerifyQuery},
     },
     service::{
@@ -23,6 +24,8 @@ use crate::{
         handler::public_auth::verify_email,
         handler::public_auth::request_email_login,
         handler::public_auth::complete_email_login,
+        handler::preferences::get_preferences,
+        handler::preferences::update_preferences,
         handler::accounts::create_account,
         handler::accounts::get_account,
         handler::accounts::update_account,
@@ -35,6 +38,8 @@ use crate::{
         EmailOnlyRequest,
         VerifyQuery,
         CompleteLoginRequest,
+        PreferencesResponse,
+        UpdatePreferencesRequest,
         EmailActionAccepted,
         EmailVerifyResult,
         EmailLoginResult,
@@ -45,6 +50,7 @@ use crate::{
     tags(
         (name = "health", description = "Health check"),
         (name = "auth", description = "Auth context"),
+        (name = "preferences", description = "Cross-app user preferences"),
         (name = "accounts", description = "Accounts")
     )
 )]

@@ -1,5 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
-import { languageFromCookies } from "$lib/i18n/server";
+import type { PreferencesResponse } from "$openapi/client";
+import { apiJson } from "$lib/server/api";
 import { clearAuthCookie, clearAuthCookieFromHeader } from "$lib/server/cookies";
 
 async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
@@ -19,9 +20,10 @@ async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], 
   }
 }
 
-export const load: PageServerLoad = async ({ url, cookies }) => {
+export const load: PageServerLoad = async ({ url, fetch }) => {
+  const preferences = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
   return {
-    language: languageFromCookies(cookies),
+    language: preferences.data?.language || "en",
     canonical: `${url.origin}/logout`,
   };
 };

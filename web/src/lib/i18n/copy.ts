@@ -1,4 +1,4 @@
-import type { LiberteLanguage } from "$lib/i18n/shared";
+import type { LiberteLanguage } from "$lib/preferences/shared";
 
 const copy = {
   en: {

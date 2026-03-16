@@ -1,14 +1,11 @@
 import { apiOrigin } from "$lib/server/api";
-import { languageFromCookies } from "$lib/i18n/server";
-import { LIBERTE_LANGUAGE_HEADER } from "$lib/i18n/shared";
 import type { RequestHandler } from "./$types";
 
-async function proxy({ fetch, params, request, url, cookies }: Parameters<RequestHandler>[0]) {
+async function proxy({ fetch, params, request, url }: Parameters<RequestHandler>[0]) {
   const target = new URL(`/api/${params.path}`, apiOrigin());
   target.search = url.search;
 
   const headers = new Headers(request.headers);
-  headers.set(LIBERTE_LANGUAGE_HEADER, headers.get(LIBERTE_LANGUAGE_HEADER) || languageFromCookies(cookies));
   headers.delete("host");
   headers.delete("connection");
   headers.delete("content-length");

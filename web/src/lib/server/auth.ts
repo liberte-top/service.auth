@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { translate } from "$lib/i18n/copy";
 import { apiJson } from "$lib/server/api";
-import { languageFromCookies, languageHeader } from "$lib/i18n/server";
+import type { PreferencesResponse } from "$openapi/client";
 import { sanitizeInternalPath } from "$lib/server/redirects";
 
 type Mode = "login" | "register";
@@ -15,10 +15,9 @@ export async function loadAuthPage(fetch: typeof globalThis.fetch, url: URL, mod
   const email = url.searchParams.get("email") || "";
   const rewrite = sanitizeInternalPath(url.searchParams.get("rewrite") || url.searchParams.get("return_to"));
   const verified = url.searchParams.get("verified") === "1";
-  const language = languageFromCookies(cookies);
-  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context", {
-    headers: languageHeader(language),
-  });
+  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context");
+  const { data: preferences } = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+  const language = preferences?.language || "en";
 
   return {
     mode,
@@ -32,22 +31,23 @@ export async function loadAuthPage(fetch: typeof globalThis.fetch, url: URL, mod
 }
 
 export const authActions = {
-  login: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
+  login: async ({ fetch, request, url }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
     const email = String(data.get("email") || "").trim();
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
-      const language = languageFromCookies(cookies);
+      const { data: preferences } = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+      const language = preferences?.language || "en";
       return fail(400, { mode: "login" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, rewrite });
     }
 
-    const language = languageFromCookies(cookies);
+    const { data: preferences } = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+    const language = preferences?.language || "en";
     const responseWithLanguage = await fetch("/api/v1/auth/login/email", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...languageHeader(language),
       },
       body: JSON.stringify({
         email,
@@ -61,7 +61,7 @@ export const authActions = {
 
     return { mode: "login" as const, message: translate(language, "auth.login.emailSent"), tone: "success" as const, email, rewrite };
   },
-  register: async ({ fetch, request, url, cookies }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
+  register: async ({ fetch, request, url }: { fetch: typeof globalThis.fetch; request: Request; url: URL; cookies: import("@sveltejs/kit").Cookies }) => {
     const data = await request.formData();
     const intent = String(data.get("intent") || "register");
     const email = String(data.get("email") || "").trim();
@@ -69,11 +69,13 @@ export const authActions = {
     const rewrite = sanitizeInternalPath(String(data.get("rewrite") || url.searchParams.get("rewrite") || ""));
 
     if (!email) {
-      const language = languageFromCookies(cookies);
+      const { data: preferences } = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+      const language = preferences?.language || "en";
       return fail(400, { mode: "register" as const, message: translate(language, "auth.common.emailRequired"), tone: "error" as const, email, displayName, rewrite });
     }
 
-    const language = languageFromCookies(cookies);
+    const { data: preferences } = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+    const language = preferences?.language || "en";
     const path = intent === "resend" ? "/api/v1/auth/verify/email/resend" : "/api/v1/auth/register/email";
     const body = intent === "resend"
       ? {
@@ -90,7 +92,6 @@ export const authActions = {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...languageHeader(language),
       },
       body: JSON.stringify(body),
     });

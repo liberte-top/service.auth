@@ -7,7 +7,7 @@
 
   export let data: LayoutData;
 
-  setContext("liberte-language", data.language);
+  setContext("liberte-language", data.preferences.language);
 </script>
 
 <svelte:head>
@@ -16,5 +16,5 @@
   <meta name="liberte:build-timestamp" content={data.buildInfo.timestamp} />
 </svelte:head>
 
-<LanguageSwitcher language={data.language} supportedLanguages={data.supportedLanguages} />
+<LanguageSwitcher language={data.preferences.language} theme={data.preferences.theme} supportedLanguages={data.preferences.supported_languages} />
 <slot />

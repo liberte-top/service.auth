@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { languageHeader, languageFromCookies } from "$lib/i18n/server";
+import type { PreferencesResponse } from "$openapi/client";
 import type { PageServerLoad } from "./$types";
 import { apiJson } from "$lib/server/api";
 
@@ -9,10 +9,9 @@ type AuthContext = {
 };
 
 export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
-  const language = languageFromCookies(cookies);
-  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context", {
-    headers: languageHeader(language),
-  });
+  const { data } = await apiJson<AuthContext>(fetch, "/api/v1/context");
+  const preferences = await apiJson<PreferencesResponse>(fetch, "/api/v1/preferences");
+  const language = preferences.data?.language || "en";
 
   if (!data?.authenticated) {
     throw redirect(303, "/");
