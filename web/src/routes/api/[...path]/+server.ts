@@ -1,12 +1,9 @@
+import { ensure } from "@liberte-top/shared/ensure";
+import { AppError } from "$lib/error";
 import type { RequestHandler } from "./$types";
 
 function apiOrigin() {
-  const origin = process.env.AUTH_API_INTERNAL_URL || process.env.WEB_VITE_AUTH_API_BASE_URL;
-  if (!origin) {
-    throw new Error("AUTH_API_INTERNAL_URL is required");
-  }
-
-  return origin;
+  return ensure.nonEmpty(process.env.AUTH_API_INTERNAL_URL || process.env.WEB_VITE_AUTH_API_BASE_URL, () => AppError.missingApiOrigin());
 }
 
 async function proxy({ fetch, params, request, url }: Parameters<RequestHandler>[0]) {

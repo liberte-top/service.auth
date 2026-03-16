@@ -1,4 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
+import { ensure } from "@liberte-top/shared/ensure";
+import { AppError } from "$lib/error";
 import { getPreferences } from "$lib/server/auth-api";
 import type { Cookies } from "@sveltejs/kit";
 
@@ -16,12 +18,7 @@ function clearAuthCookie(cookies: Cookies) {
 function clearAuthCookieFromHeader(cookies: Cookies, setCookieHeader: string) {
   const [cookiePart, ...attributeParts] = setCookieHeader.split(";");
   const [rawName] = cookiePart.split("=");
-  const name = rawName?.trim();
-
-  if (!name) {
-    clearAuthCookie(cookies);
-    return;
-  }
+  const name = ensure.nonEmpty(rawName?.trim(), () => AppError.logoutCookieNameMissing(), () => clearAuthCookie(cookies));
 
   let domain: string | undefined;
   let path = "/";
@@ -51,10 +48,8 @@ async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], 
   });
 
   const setCookie = response.headers.get("set-cookie");
-  if (!response.ok || !setCookie) {
-    clearAuthCookie(cookies);
-    throw new Error(`logout failed with status ${response.status}`);
-  }
+  ensure(response.ok, () => AppError.logoutFailed(response.status), () => clearAuthCookie(cookies));
+  ensure.nonEmpty(setCookie, () => AppError.logoutCookieMissing(), () => clearAuthCookie(cookies));
 
   clearAuthCookieFromHeader(cookies, setCookie);
 }
