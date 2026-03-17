@@ -9,6 +9,43 @@ import type {
 } from "./client";
 import { fetch_json, type FetchLike } from "@liberte-top/shared/openapi";
 
+export type LocalAuthContextResponse = AuthContextResponse & {
+  principal_type?: string | null;
+};
+
+export type SelfProfileResponse = {
+  subject: string;
+  principal_type: string;
+  email?: string | null;
+  email_verified: boolean;
+  display_name?: string | null;
+  scopes: string[];
+};
+
+export type UpdateSelfProfileRequest = {
+  display_name?: string | null;
+};
+
+export type ApiTokenSummary = {
+  id: number;
+  name: string;
+  prefix: string;
+  created_at: string;
+  last_used_at?: string | null;
+  expires_at?: string | null;
+  revoked_at?: string | null;
+};
+
+export type ApiTokenSecret = {
+  token: string;
+  summary: ApiTokenSummary;
+};
+
+export type CreateApiTokenRequest = {
+  name: string;
+  expires_at?: string | null;
+};
+
 export const openapi = {
   create(fetchFn: FetchLike) {
     return {
@@ -33,8 +70,43 @@ export const openapi = {
       },
 
       getAuthContext() {
-        return fetch_json<AuthContextResponse>(fetchFn, {
+        return fetch_json<LocalAuthContextResponse>(fetchFn, {
           path: "/api/v1/auth/context",
+        });
+      },
+
+      getSelfProfile() {
+        return fetch_json<SelfProfileResponse>(fetchFn, {
+          path: "/api/v1/self/profile",
+        });
+      },
+
+      updateSelfProfile(payload: UpdateSelfProfileRequest) {
+        return fetch_json<SelfProfileResponse>(fetchFn, {
+          path: "/api/v1/self/profile",
+          method: "PATCH",
+          body: payload,
+        });
+      },
+
+      listSelfTokens() {
+        return fetch_json<ApiTokenSummary[]>(fetchFn, {
+          path: "/api/v1/self/tokens",
+        });
+      },
+
+      createSelfToken(payload: CreateApiTokenRequest) {
+        return fetch_json<ApiTokenSecret>(fetchFn, {
+          path: "/api/v1/self/tokens",
+          method: "POST",
+          body: payload,
+        });
+      },
+
+      revokeSelfToken(id: number) {
+        return fetch_json<ApiTokenSummary>(fetchFn, {
+          path: `/api/v1/self/tokens/${id}`,
+          method: "DELETE",
         });
       },
 

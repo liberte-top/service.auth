@@ -2,6 +2,7 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sea_orm_migration::prelude::*;
 
 mod account_emails;
+mod account_profiles;
 mod account_scopes;
 mod accounts;
 mod api_keys;
@@ -24,6 +25,7 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     api_keys::apply(&manager, conn).await?;
     account_scopes::apply(&manager, conn).await?;
     account_emails::apply(&manager, conn).await?;
+    account_profiles::apply(&manager, conn).await?;
     email_tokens::apply(&manager, conn).await?;
     route_policies::apply(&manager, conn).await?;
     route_policy_scopes::apply(&manager, conn).await?;
@@ -48,7 +50,7 @@ $$ LANGUAGE plpgsql;
     ))
     .await?;
 
-    for table in ["accounts", "route_policies"] {
+    for table in ["accounts", "account_profiles", "route_policies"] {
         let trigger_name = format!("trg_{}_set_updated_at", table);
         conn.execute(Statement::from_string(
             DbBackend::Postgres,

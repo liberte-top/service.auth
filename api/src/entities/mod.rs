@@ -1,4 +1,5 @@
 pub mod account_emails;
+pub mod account_profiles;
 pub mod account_scopes;
 pub mod accounts;
 pub mod api_keys;

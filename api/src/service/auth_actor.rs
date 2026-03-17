@@ -21,6 +21,7 @@ pub struct AuthScopeDefinition {
 
 #[derive(Clone)]
 pub struct ResolvedAuthActor {
+    pub account_id: i64,
     pub subject: String,
     pub principal_type: String,
     pub email: Option<String>,
@@ -134,6 +135,7 @@ impl AuthActorServiceImpl {
             .flatten()?;
 
         Some(ResolvedAuthActor {
+            account_id: account.id,
             subject: account.uid.to_string(),
             principal_type: account.account_type,
             email: self.resolve_primary_email(account.id).await,
@@ -171,6 +173,7 @@ impl AuthActorServiceImpl {
         let _ = self.api_keys_repo.touch_last_used(key).await;
 
         Some(ResolvedAuthActor {
+            account_id: account.id,
             subject: account.uid.to_string(),
             principal_type: account.account_type,
             email: self.resolve_primary_email(account.id).await,
