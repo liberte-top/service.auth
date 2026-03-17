@@ -7,13 +7,7 @@ export default defineConfig({
     },
     output: {
       target: "openapi/client.ts",
-      client: "axios",
-      override: {
-        mutator: {
-          path: "./openapi/http.ts",
-          name: "customInstance",
-        },
-      },
+      client: "fetch",
     },
   },
 });

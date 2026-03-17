@@ -4,12 +4,6 @@
  * service-auth-api
  * OpenAPI spec version: 0.1.0
  */
-import axios from 'axios';
-import type {
-  AxiosInstance
-} from 'axios';
-
-import { customInstance } from './http';
 export interface AccountResponse {
   account_type: string;
   created_at: string;
@@ -136,161 +130,610 @@ export type VerifyEmailParams = {
 token: string;
 };
 
-export const getServiceAuthApi = (axiosInstance: AxiosInstance = axios) => {
-const createAccount = (
-    createAccount: CreateAccount,
- ) => {
-      return customInstance<AccountResponse>(
-      {url: `/api/v1/accounts`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: createAccount
-    },
-      );
-    }
-  
-const getAccount = (
-    uid: string,
- ) => {
-      return customInstance<AccountResponse>(
-      {url: `/api/v1/accounts/${uid}`, method: 'GET'
-    },
-      );
-    }
-  
-const deleteAccount = (
-    uid: string,
- ) => {
-      return customInstance<void>(
-      {url: `/api/v1/accounts/${uid}`, method: 'DELETE'
-    },
-      );
-    }
-  
-const updateAccount = (
-    uid: string,
-    updateAccount: UpdateAccount,
- ) => {
-      return customInstance<AccountResponse>(
-      {url: `/api/v1/accounts/${uid}`, method: 'PATCH',
-      headers: {'Content-Type': 'application/json', },
-      data: updateAccount
-    },
-      );
-    }
-  
-const context = (
+export type createAccountResponse201 = {
+  data: AccountResponse
+  status: 201
+}
+
+export type createAccountResponse400 = {
+  data: void
+  status: 400
+}
     
- ) => {
-      return customInstance<AuthContextResponse>(
-      {url: `/api/v1/auth/context`, method: 'GET'
-    },
-      );
-    }
+export type createAccountResponseSuccess = (createAccountResponse201) & {
+  headers: Headers;
+};
+export type createAccountResponseError = (createAccountResponse400) & {
+  headers: Headers;
+};
+
+export type createAccountResponse = (createAccountResponseSuccess | createAccountResponseError)
+
+export const getCreateAccountUrl = () => {
+
+
   
-const requestEmailLogin = (
-    emailOnlyRequest: EmailOnlyRequest,
- ) => {
-      return customInstance<EmailActionAccepted>(
-      {url: `/api/v1/auth/login/email`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: emailOnlyRequest
-    },
-      );
-    }
+
+  return `/api/v1/accounts`
+}
+
+export const createAccount = async (createAccount: CreateAccount, options?: RequestInit): Promise<createAccountResponse> => {
   
-const completeEmailLogin = (
-    completeLoginRequest: CompleteLoginRequest,
- ) => {
-      return customInstance<EmailLoginResult>(
-      {url: `/api/v1/auth/login/email/complete`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: completeLoginRequest
-    },
-      );
-    }
+  const res = await fetch(getCreateAccountUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createAccount,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   
-const registerEmail = (
-    registerEmailRequest: RegisterEmailRequest,
- ) => {
-      return customInstance<EmailActionAccepted>(
-      {url: `/api/v1/auth/register/email`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: registerEmailRequest
-    },
-      );
-    }
-  
-const verifyEmail = (
-    params: VerifyEmailParams,
- ) => {
-      return customInstance<EmailVerifyResult>(
-      {url: `/api/v1/auth/verify/email`, method: 'GET',
-        params
-    },
-      );
-    }
-  
-const resendVerifyEmail = (
-    emailOnlyRequest: EmailOnlyRequest,
- ) => {
-      return customInstance<EmailActionAccepted>(
-      {url: `/api/v1/auth/verify/email/resend`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: emailOnlyRequest
-    },
-      );
-    }
-  
-const health = (
+  const data: createAccountResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as createAccountResponse
+}
+
+
+
+export type getAccountResponse200 = {
+  data: AccountResponse
+  status: 200
+}
+
+export type getAccountResponse404 = {
+  data: void
+  status: 404
+}
     
- ) => {
-      return customInstance<Health>(
-      {url: `/api/v1/health`, method: 'GET'
-    },
-      );
-    }
+export type getAccountResponseSuccess = (getAccountResponse200) & {
+  headers: Headers;
+};
+export type getAccountResponseError = (getAccountResponse404) & {
+  headers: Headers;
+};
+
+export type getAccountResponse = (getAccountResponseSuccess | getAccountResponseError)
+
+export const getGetAccountUrl = (uid: string,) => {
+
+
   
-const getPreferences = (
+
+  return `/api/v1/accounts/${uid}`
+}
+
+export const getAccount = async (uid: string, options?: RequestInit): Promise<getAccountResponse> => {
+  
+  const res = await fetch(getGetAccountUrl(uid),
+  {      
+    ...options,
+    method: 'GET'
     
- ) => {
-      return customInstance<PreferencesResponse>(
-      {url: `/api/v1/preferences`, method: 'GET'
-    },
-      );
-    }
-  
-const updatePreferences = (
-    updatePreferencesRequest: UpdatePreferencesRequest,
- ) => {
-      return customInstance<PreferencesResponse>(
-      {url: `/api/v1/preferences`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: updatePreferencesRequest
-    },
-      );
-    }
-  
-const getPreferenceOptions = (
     
- ) => {
-      return customInstance<PreferenceOptionsResponse>(
-      {url: `/api/v1/preferences/options`, method: 'GET'
-    },
-      );
-    }
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   
-return {createAccount,getAccount,deleteAccount,updateAccount,context,requestEmailLogin,completeEmailLogin,registerEmail,verifyEmail,resendVerifyEmail,health,getPreferences,updatePreferences,getPreferenceOptions}};
-export type CreateAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['createAccount']>>>
-export type GetAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getAccount']>>>
-export type DeleteAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['deleteAccount']>>>
-export type UpdateAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['updateAccount']>>>
-export type ContextResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['context']>>>
-export type RequestEmailLoginResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['requestEmailLogin']>>>
-export type CompleteEmailLoginResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['completeEmailLogin']>>>
-export type RegisterEmailResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['registerEmail']>>>
-export type VerifyEmailResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['verifyEmail']>>>
-export type ResendVerifyEmailResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['resendVerifyEmail']>>>
-export type HealthResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['health']>>>
-export type GetPreferencesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getPreferences']>>>
-export type UpdatePreferencesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['updatePreferences']>>>
-export type GetPreferenceOptionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getServiceAuthApi>['getPreferenceOptions']>>>
+  const data: getAccountResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getAccountResponse
+}
+
+
+
+export type deleteAccountResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteAccountResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deleteAccountResponseSuccess = (deleteAccountResponse204) & {
+  headers: Headers;
+};
+export type deleteAccountResponseError = (deleteAccountResponse404) & {
+  headers: Headers;
+};
+
+export type deleteAccountResponse = (deleteAccountResponseSuccess | deleteAccountResponseError)
+
+export const getDeleteAccountUrl = (uid: string,) => {
+
+
+  
+
+  return `/api/v1/accounts/${uid}`
+}
+
+export const deleteAccount = async (uid: string, options?: RequestInit): Promise<deleteAccountResponse> => {
+  
+  const res = await fetch(getDeleteAccountUrl(uid),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteAccountResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteAccountResponse
+}
+
+
+
+export type updateAccountResponse200 = {
+  data: AccountResponse
+  status: 200
+}
+
+export type updateAccountResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updateAccountResponseSuccess = (updateAccountResponse200) & {
+  headers: Headers;
+};
+export type updateAccountResponseError = (updateAccountResponse404) & {
+  headers: Headers;
+};
+
+export type updateAccountResponse = (updateAccountResponseSuccess | updateAccountResponseError)
+
+export const getUpdateAccountUrl = (uid: string,) => {
+
+
+  
+
+  return `/api/v1/accounts/${uid}`
+}
+
+export const updateAccount = async (uid: string,
+    updateAccount: UpdateAccount, options?: RequestInit): Promise<updateAccountResponse> => {
+  
+  const res = await fetch(getUpdateAccountUrl(uid),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateAccount,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: updateAccountResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as updateAccountResponse
+}
+
+
+
+export type contextResponse200 = {
+  data: AuthContextResponse
+  status: 200
+}
+
+export type contextResponse304 = {
+  data: void
+  status: 304
+}
+    
+export type contextResponseSuccess = (contextResponse200) & {
+  headers: Headers;
+};
+export type contextResponseError = (contextResponse304) & {
+  headers: Headers;
+};
+
+export type contextResponse = (contextResponseSuccess | contextResponseError)
+
+export const getContextUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/context`
+}
+
+export const context = async ( options?: RequestInit): Promise<contextResponse> => {
+  
+  const res = await fetch(getContextUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: contextResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as contextResponse
+}
+
+
+
+export type requestEmailLoginResponse202 = {
+  data: EmailActionAccepted
+  status: 202
+}
+    
+export type requestEmailLoginResponseSuccess = (requestEmailLoginResponse202) & {
+  headers: Headers;
+};
+;
+
+export type requestEmailLoginResponse = (requestEmailLoginResponseSuccess)
+
+export const getRequestEmailLoginUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/login/email`
+}
+
+export const requestEmailLogin = async (emailOnlyRequest: EmailOnlyRequest, options?: RequestInit): Promise<requestEmailLoginResponse> => {
+  
+  const res = await fetch(getRequestEmailLoginUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      emailOnlyRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: requestEmailLoginResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as requestEmailLoginResponse
+}
+
+
+
+export type completeEmailLoginResponse200 = {
+  data: EmailLoginResult
+  status: 200
+}
+
+export type completeEmailLoginResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type completeEmailLoginResponseSuccess = (completeEmailLoginResponse200) & {
+  headers: Headers;
+};
+export type completeEmailLoginResponseError = (completeEmailLoginResponse404) & {
+  headers: Headers;
+};
+
+export type completeEmailLoginResponse = (completeEmailLoginResponseSuccess | completeEmailLoginResponseError)
+
+export const getCompleteEmailLoginUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/login/email/complete`
+}
+
+export const completeEmailLogin = async (completeLoginRequest: CompleteLoginRequest, options?: RequestInit): Promise<completeEmailLoginResponse> => {
+  
+  const res = await fetch(getCompleteEmailLoginUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      completeLoginRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: completeEmailLoginResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as completeEmailLoginResponse
+}
+
+
+
+export type registerEmailResponse202 = {
+  data: EmailActionAccepted
+  status: 202
+}
+    
+export type registerEmailResponseSuccess = (registerEmailResponse202) & {
+  headers: Headers;
+};
+;
+
+export type registerEmailResponse = (registerEmailResponseSuccess)
+
+export const getRegisterEmailUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/register/email`
+}
+
+export const registerEmail = async (registerEmailRequest: RegisterEmailRequest, options?: RequestInit): Promise<registerEmailResponse> => {
+  
+  const res = await fetch(getRegisterEmailUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      registerEmailRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: registerEmailResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as registerEmailResponse
+}
+
+
+
+export type verifyEmailResponse200 = {
+  data: EmailVerifyResult
+  status: 200
+}
+
+export type verifyEmailResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type verifyEmailResponseSuccess = (verifyEmailResponse200) & {
+  headers: Headers;
+};
+export type verifyEmailResponseError = (verifyEmailResponse404) & {
+  headers: Headers;
+};
+
+export type verifyEmailResponse = (verifyEmailResponseSuccess | verifyEmailResponseError)
+
+export const getVerifyEmailUrl = (params: VerifyEmailParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/auth/verify/email?${stringifiedParams}` : `/api/v1/auth/verify/email`
+}
+
+export const verifyEmail = async (params: VerifyEmailParams, options?: RequestInit): Promise<verifyEmailResponse> => {
+  
+  const res = await fetch(getVerifyEmailUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: verifyEmailResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as verifyEmailResponse
+}
+
+
+
+export type resendVerifyEmailResponse202 = {
+  data: EmailActionAccepted
+  status: 202
+}
+    
+export type resendVerifyEmailResponseSuccess = (resendVerifyEmailResponse202) & {
+  headers: Headers;
+};
+;
+
+export type resendVerifyEmailResponse = (resendVerifyEmailResponseSuccess)
+
+export const getResendVerifyEmailUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/verify/email/resend`
+}
+
+export const resendVerifyEmail = async (emailOnlyRequest: EmailOnlyRequest, options?: RequestInit): Promise<resendVerifyEmailResponse> => {
+  
+  const res = await fetch(getResendVerifyEmailUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      emailOnlyRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: resendVerifyEmailResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as resendVerifyEmailResponse
+}
+
+
+
+export type healthResponse200 = {
+  data: Health
+  status: 200
+}
+    
+export type healthResponseSuccess = (healthResponse200) & {
+  headers: Headers;
+};
+;
+
+export type healthResponse = (healthResponseSuccess)
+
+export const getHealthUrl = () => {
+
+
+  
+
+  return `/api/v1/health`
+}
+
+export const health = async ( options?: RequestInit): Promise<healthResponse> => {
+  
+  const res = await fetch(getHealthUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: healthResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as healthResponse
+}
+
+
+
+export type getPreferencesResponse200 = {
+  data: PreferencesResponse
+  status: 200
+}
+    
+export type getPreferencesResponseSuccess = (getPreferencesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getPreferencesResponse = (getPreferencesResponseSuccess)
+
+export const getGetPreferencesUrl = () => {
+
+
+  
+
+  return `/api/v1/preferences`
+}
+
+export const getPreferences = async ( options?: RequestInit): Promise<getPreferencesResponse> => {
+  
+  const res = await fetch(getGetPreferencesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getPreferencesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getPreferencesResponse
+}
+
+
+
+export type updatePreferencesResponse200 = {
+  data: PreferencesResponse
+  status: 200
+}
+    
+export type updatePreferencesResponseSuccess = (updatePreferencesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updatePreferencesResponse = (updatePreferencesResponseSuccess)
+
+export const getUpdatePreferencesUrl = () => {
+
+
+  
+
+  return `/api/v1/preferences`
+}
+
+export const updatePreferences = async (updatePreferencesRequest: UpdatePreferencesRequest, options?: RequestInit): Promise<updatePreferencesResponse> => {
+  
+  const res = await fetch(getUpdatePreferencesUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePreferencesRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: updatePreferencesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as updatePreferencesResponse
+}
+
+
+
+export type getPreferenceOptionsResponse200 = {
+  data: PreferenceOptionsResponse
+  status: 200
+}
+    
+export type getPreferenceOptionsResponseSuccess = (getPreferenceOptionsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getPreferenceOptionsResponse = (getPreferenceOptionsResponseSuccess)
+
+export const getGetPreferenceOptionsUrl = () => {
+
+
+  
+
+  return `/api/v1/preferences/options`
+}
+
+export const getPreferenceOptions = async ( options?: RequestInit): Promise<getPreferenceOptionsResponse> => {
+  
+  const res = await fetch(getGetPreferenceOptionsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getPreferenceOptionsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getPreferenceOptionsResponse
+}
