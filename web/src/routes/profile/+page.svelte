@@ -66,7 +66,7 @@
           </div>
           <div class="identity-item">
             <span class="identity-label">{translate(data.language, "auth.profile.authTypeLabel")}</span>
-            <strong>{data.authContext.auth_type || "-"}</strong>
+                <strong>{data.authContext.authType || "-"}</strong>
           </div>
           <div class="identity-item">
             <span class="identity-label">{translate(data.language, "auth.profile.principalTypeLabel")}</span>

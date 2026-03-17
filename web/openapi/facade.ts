@@ -10,6 +10,17 @@ import type {
 import type { AuthContext, AuthScopeDefinition } from "@liberte-top/shared/auth";
 import { fetch_json, type FetchLike } from "@liberte-top/shared/openapi";
 
+type AuthContextWire = AuthContextResponse & {
+  principal_type?: "user" | "team" | "robot" | null;
+};
+
+type AuthScopeDefinitionWire = {
+  name: string;
+  label: string;
+  description: string;
+  granted_by_default: boolean;
+};
+
 export type LocalAuthContextResponse = AuthContext<"user" | "team" | "robot", "session" | "api_key">;
 
 export type SelfProfileResponse = {
@@ -45,6 +56,26 @@ export type CreateApiTokenRequest = {
   expires_at?: string | null;
 };
 
+function toAuthContext(payload: AuthContextWire): LocalAuthContextResponse {
+  return {
+    authenticated: payload.authenticated,
+    subject: payload.subject ?? null,
+    principalType: payload.principal_type ?? null,
+    email: payload.email ?? null,
+    authType: payload.auth_type ?? null,
+    scopes: payload.scopes,
+  };
+}
+
+function toAuthScopeDefinition(payload: AuthScopeDefinitionWire): AuthScopeDefinition {
+  return {
+    name: payload.name,
+    label: payload.label,
+    description: payload.description,
+    grantedByDefault: payload.granted_by_default,
+  };
+}
+
 export const openapi = {
   create(fetchFn: FetchLike) {
     return {
@@ -68,16 +99,24 @@ export const openapi = {
         });
       },
 
-      getAuthContext() {
-        return fetch_json<LocalAuthContextResponse>(fetchFn, {
+      async getAuthContext() {
+        const result = await fetch_json<AuthContextWire>(fetchFn, {
           path: "/api/v1/auth/context",
         });
+        return {
+          ...result,
+          data: toAuthContext(result.data),
+        };
       },
 
-      getScopeCatalog() {
-        return fetch_json<AuthScopeDefinition[]>(fetchFn, {
+      async getScopeCatalog() {
+        const result = await fetch_json<AuthScopeDefinitionWire[]>(fetchFn, {
           path: "/api/v1/auth/scopes",
         });
+        return {
+          ...result,
+          data: result.data.map(toAuthScopeDefinition),
+        };
       },
 
       getSelfProfile() {
