@@ -15,6 +15,25 @@ use crate::state::AppState;
 const LANGUAGE_COOKIE: &str = "liberte_language";
 const THEME_COOKIE: &str = "liberte_theme";
 
+#[derive(Clone, Copy)]
+enum PreferenceLanguage {
+    En,
+    ZhCn,
+}
+
+#[derive(Clone, Copy)]
+enum PreferenceTheme {
+    System,
+    Light,
+    Dark,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct PreferenceOption {
+    pub label: String,
+    pub value: String,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct PreferencesResponse {
     pub language: String,
@@ -23,8 +42,8 @@ pub struct PreferencesResponse {
 
 #[derive(Serialize, ToSchema)]
 pub struct PreferenceOptionsResponse {
-    pub languages: Vec<String>,
-    pub themes: Vec<String>,
+    pub languages: Vec<PreferenceOption>,
+    pub themes: Vec<PreferenceOption>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -33,24 +52,75 @@ pub struct UpdatePreferencesRequest {
     pub theme: Option<String>,
 }
 
-fn normalize_language(value: Option<&str>) -> &'static str {
-    match value.unwrap_or("en").trim().to_ascii_lowercase().as_str() {
-        "zh" | "zh-cn" => "zh-CN",
-        _ => "en",
+impl PreferenceLanguage {
+    fn parse(value: Option<&str>) -> Self {
+        match value.unwrap_or("en").trim().to_ascii_lowercase().as_str() {
+            "zh" | "zh-cn" => Self::ZhCn,
+            _ => Self::En,
+        }
+    }
+
+    fn value(self) -> &'static str {
+        match self {
+            Self::En => "en",
+            Self::ZhCn => "zh-CN",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::En => "English",
+            Self::ZhCn => "简体中文",
+        }
+    }
+
+    fn option(self) -> PreferenceOption {
+        PreferenceOption {
+            label: self.label().to_owned(),
+            value: self.value().to_owned(),
+        }
     }
 }
 
-fn normalize_theme(value: Option<&str>) -> &'static str {
-    match value
-        .unwrap_or("system")
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "light" => "light",
-        "dark" => "dark",
-        _ => "system",
+impl PreferenceTheme {
+    fn parse(value: Option<&str>) -> Self {
+        match value.unwrap_or("system").trim().to_ascii_lowercase().as_str() {
+            "light" => Self::Light,
+            "dark" => Self::Dark,
+            _ => Self::System,
+        }
     }
+
+    fn value(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::System => "System",
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+        }
+    }
+
+    fn option(self) -> PreferenceOption {
+        PreferenceOption {
+            label: self.label().to_owned(),
+            value: self.value().to_owned(),
+        }
+    }
+}
+
+fn normalize_language(value: Option<&str>) -> &'static str {
+    PreferenceLanguage::parse(value).value()
+}
+
+fn normalize_theme(value: Option<&str>) -> &'static str {
+    PreferenceTheme::parse(value).value()
 }
 
 fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
@@ -77,8 +147,12 @@ fn preferences_from_headers(headers: &HeaderMap) -> PreferencesResponse {
 
 fn preference_options() -> PreferenceOptionsResponse {
     PreferenceOptionsResponse {
-        languages: vec!["en".to_owned(), "zh-CN".to_owned()],
-        themes: vec!["system".to_owned(), "light".to_owned(), "dark".to_owned()],
+        languages: vec![PreferenceLanguage::En.option(), PreferenceLanguage::ZhCn.option()],
+        themes: vec![
+            PreferenceTheme::System.option(),
+            PreferenceTheme::Light.option(),
+            PreferenceTheme::Dark.option(),
+        ],
     }
 }
 

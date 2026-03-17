@@ -81,9 +81,14 @@ export interface Health {
   status: string;
 }
 
+export interface PreferenceOption {
+  label: string;
+  value: string;
+}
+
 export interface PreferenceOptionsResponse {
-  languages: string[];
-  themes: string[];
+  languages: PreferenceOption[];
+  themes: PreferenceOption[];
 }
 
 export interface PreferencesResponse {

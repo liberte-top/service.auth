@@ -5,7 +5,10 @@ use crate::{
     handler::{
         accounts::{AccountResponse, CreateAccount, UpdateAccount},
         health::Health,
-        preferences::{PreferenceOptionsResponse, PreferencesResponse, UpdatePreferencesRequest},
+        preferences::{
+            PreferenceOption, PreferenceOptionsResponse, PreferencesResponse,
+            UpdatePreferencesRequest,
+        },
         public_auth::{CompleteLoginRequest, EmailOnlyRequest, RegisterEmailRequest, VerifyQuery},
     },
     service::{
@@ -39,6 +42,7 @@ use crate::{
         EmailOnlyRequest,
         VerifyQuery,
         CompleteLoginRequest,
+        PreferenceOption,
         PreferenceOptionsResponse,
         PreferencesResponse,
         UpdatePreferencesRequest,

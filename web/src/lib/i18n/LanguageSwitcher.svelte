@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { defer } from "@liberte-top/shared/defer";
   import { openapi } from "$openapi";
   import type { PreferenceOptionsResponse, PreferencesResponse } from "$openapi/client";
 
@@ -16,33 +17,34 @@
 
   async function setLanguage(nextLanguage: PreferencesResponse["language"]) {
     if (busy || nextLanguage === language) return;
-    busy = true;
 
-    try {
-      const api = openapi.create(fetch);
-      await api.updatePreferences({ language: nextLanguage, theme });
-      window.location.reload();
-    } finally {
-      busy = false;
-    }
-  }
-
-  function labelFor(language: PreferencesResponse["language"]) {
-    return language === "zh-CN" ? "中文" : "EN";
+    await defer(
+      () => {
+        busy = true;
+        return () => {
+          busy = false;
+        };
+      },
+      async () => {
+        const api = openapi.create(fetch);
+        await api.updatePreferences({ language: nextLanguage, theme });
+        window.location.reload();
+      }
+    );
   }
 </script>
 
 <div class="language-switcher" aria-label="Language switcher">
   {#each supportedLanguages as candidate}
     <button
-      class:active={candidate === language}
+      class:active={candidate.value === language}
       class="language-chip"
       type="button"
-      disabled={busy && candidate !== language}
-      aria-pressed={candidate === language}
-      onclick={() => setLanguage(candidate)}
+      disabled={busy && candidate.value !== language}
+      aria-pressed={candidate.value === language}
+      onclick={() => setLanguage(candidate.value)}
     >
-      {labelFor(candidate)}
+      {candidate.label}
     </button>
   {/each}
 </div>
