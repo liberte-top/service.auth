@@ -27,6 +27,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 opentelemetry = "0.25"
 opentelemetry_sdk = { version = "0.25", features = ["trace"] }
 tracing-opentelemetry = "0.26"
+sha2 = "0.10"
 
 [dev-dependencies]
 dotenvy = "0.15"

@@ -33,6 +33,7 @@ async fn main() {
         .merge(handler::health::routes())
         .merge(handler::public_auth::routes(state.clone()))
         .merge(handler::internal_auth::routes(state.clone()))
+        .merge(handler::self_service::routes(state.clone()))
         .merge(handler::preferences::routes(state.clone()))
         .merge(handler::admin_accounts::routes(state.clone()))
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()))
