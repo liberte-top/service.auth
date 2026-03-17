@@ -12,6 +12,7 @@ use crate::{
         public_auth::{CompleteLoginRequest, EmailOnlyRequest, RegisterEmailRequest, VerifyQuery},
     },
     service::{
+        auth_actor::AuthScopeDefinition,
         auth_context::AuthContextResponse,
         email_auth::{EmailActionAccepted, EmailLoginResult, EmailVerifyResult},
     },
@@ -22,6 +23,7 @@ use crate::{
     paths(
         handler::health::health,
         handler::public_auth::context,
+        handler::public_auth::scope_catalog,
         handler::public_auth::register_email,
         handler::public_auth::resend_verify_email,
         handler::public_auth::verify_email,
@@ -37,6 +39,7 @@ use crate::{
     ),
     components(schemas(
         Health,
+        AuthScopeDefinition,
         AuthContextResponse,
         RegisterEmailRequest,
         EmailOnlyRequest,

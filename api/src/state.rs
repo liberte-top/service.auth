@@ -10,9 +10,9 @@ use crate::{
     repo::route_policies::RoutePoliciesRepo,
     repo::sessions::SessionsRepo,
     service::{
-        access::AccessService, accounts::AccountsService, auth_context::AuthContextService,
-        config::ConfigService, email_auth::EmailAuthService, mail_client::MailClientService,
-        mailer::MailerService,
+        access::AccessService, accounts::AccountsService, auth_actor::AuthActorService,
+        auth_context::AuthContextService, config::ConfigService, email_auth::EmailAuthService,
+        mail_client::MailClientService, mailer::MailerService,
     },
 };
 
@@ -51,6 +51,7 @@ pub struct AppState {
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
     route_policies_repo: Arc<dyn RoutePoliciesRepo>,
     sessions_repo: Arc<dyn SessionsRepo>,
+    auth_actor: Arc<dyn AuthActorService>,
     accounts: Arc<dyn AccountsService>,
     email_auth: Arc<dyn EmailAuthService>,
     access: Arc<dyn AccessService>,
@@ -80,6 +81,14 @@ impl AppState {
             accounts_repo.clone(),
         ));
         let config = Arc::new(crate::service::config::ConfigServiceImpl::new());
+        let auth_actor = Arc::new(crate::service::auth_actor::AuthActorServiceImpl::new(
+            config.clone(),
+            api_keys_repo.clone(),
+            accounts_repo.clone(),
+            account_emails_repo.clone(),
+            account_scopes_repo.clone(),
+            sessions_repo.clone(),
+        ));
         let mailer = Arc::new(crate::service::mailer::ResendMailerService::new(
             config.clone(),
         ));
@@ -88,19 +97,11 @@ impl AppState {
         ));
         let access = Arc::new(crate::service::access::AccessServiceImpl::new(
             config.clone(),
-            api_keys_repo.clone(),
-            accounts_repo.clone(),
-            account_scopes_repo.clone(),
+            auth_actor.clone(),
             route_policies_repo.clone(),
-            sessions_repo.clone(),
         ));
         let auth_context = Arc::new(crate::service::auth_context::AuthContextServiceImpl::new(
-            config.clone(),
-            api_keys_repo.clone(),
-            accounts_repo.clone(),
-            account_emails_repo.clone(),
-            account_scopes_repo.clone(),
-            sessions_repo.clone(),
+            auth_actor.clone(),
         ));
         let email_auth = Arc::new(crate::service::email_auth::EmailAuthServiceImpl::new(
             accounts.clone(),
@@ -122,6 +123,7 @@ impl AppState {
             account_scopes_repo,
             route_policies_repo,
             sessions_repo,
+            auth_actor,
             accounts,
             email_auth,
             access,
@@ -144,6 +146,10 @@ impl AppState {
 
     pub fn auth_context(&self) -> &dyn AuthContextService {
         self.auth_context.as_ref()
+    }
+
+    pub fn auth_actor(&self) -> &dyn AuthActorService {
+        self.auth_actor.as_ref()
     }
 
     pub fn email_auth(&self) -> &dyn EmailAuthService {

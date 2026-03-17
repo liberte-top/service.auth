@@ -12,6 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{
     service::{
+        auth_actor::AuthScopeDefinition,
         auth_context::AuthContextResponse,
         email_auth::{EmailActionAccepted, EmailLoginResult, EmailVerifyResult},
     },
@@ -199,6 +200,16 @@ pub async fn context(
     headers: HeaderMap,
 ) -> axum::response::Response {
     state.auth_context().context(&headers).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/auth/scopes",
+    responses((status = 200, description = "Canonical auth scope catalog", body = [AuthScopeDefinition])),
+    tag = "auth"
+)]
+pub async fn scope_catalog(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    Json(state.auth_actor().scope_catalog())
 }
 
 #[utoipa::path(
@@ -442,6 +453,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/v1/auth/context", get(context))
         .route("/api/v1/context", get(context))
+        .route("/api/v1/auth/scopes", get(scope_catalog))
         .route("/api/v1/auth/register/email", post(register_email))
         .route(
             "/api/v1/auth/verify/email/resend",
