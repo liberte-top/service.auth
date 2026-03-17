@@ -33,7 +33,7 @@ jobs:
       - name: Configure GitHub Packages auth
         run: |
           set -euo pipefail
-          cat > "$HOME/.npmrc" <<'EOF'
+          cat > "$HOME/.npmrc" <<EOF
           @liberte-top:registry=https://npm.pkg.github.com
           //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
           EOF
