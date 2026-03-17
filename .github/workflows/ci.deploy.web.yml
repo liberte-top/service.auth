@@ -36,6 +36,16 @@ jobs:
         with:
           node-version: "24.8.0"
 
+      - name: Configure GitHub Packages auth
+        run: |
+          set -euo pipefail
+          cat > "$HOME/.npmrc" <<'EOF'
+          @liberte-top:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          EOF
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Enable corepack pnpm
         run: corepack enable
 
