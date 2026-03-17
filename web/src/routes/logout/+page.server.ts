@@ -47,9 +47,8 @@ async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], 
     method: "POST",
   });
 
-  const setCookie = response.headers.get("set-cookie");
+  const setCookie = ensure.nonEmpty(response.headers.get("set-cookie"), () => AppError.logoutCookieMissing(), () => clearAuthCookie(cookies));
   ensure(response.ok, () => AppError.logoutFailed(response.status), () => clearAuthCookie(cookies));
-  ensure.nonEmpty(setCookie, () => AppError.logoutCookieMissing(), () => clearAuthCookie(cookies));
 
   clearAuthCookieFromHeader(cookies, setCookie);
 }

@@ -12,8 +12,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(svelte@5.38.0)
       '@liberte-top/shared':
-        specifier: 0.0.2
-        version: 0.0.2
+        specifier: 0.0.3
+        version: 0.0.3
       '@sveltejs/adapter-node':
         specifier: 5.2.12
         version: 5.2.12(@sveltejs/kit@2.17.1(@sveltejs/vite-plugin-svelte@4.0.0(svelte@5.38.0)(vite@5.4.11(@types/node@22.13.10)(lightningcss@1.30.2)))(svelte@5.38.0)(vite@5.4.11(@types/node@22.13.10)(lightningcss@1.30.2)))
@@ -366,8 +366,8 @@ packages:
     peerDependencies:
       svelte: ^5.38.0
 
-  '@liberte-top/shared@0.0.2':
-    resolution: {integrity: sha512-rKhPqRae+9L9VLDJzuBJfWkDM1bN7bPhPaHZRskEFfD1gH/fQ3Wx5g9t8GQ5xfc54LNYagiaWbwwuXfAR9yenw==, tarball: https://npm.pkg.github.com/download/@liberte-top/shared/0.0.2/e861c3fca87e928b15a54a04acc55219617aa552}
+  '@liberte-top/shared@0.0.3':
+    resolution: {integrity: sha512-5q4qPUyXe7nWLdj+cBgKqGOrDQTCHAdbV0zqKdO1RGatITm6My4WUWNJvxe5VTZGcAPF7+iFwA4T6CZfe5APkA==, tarball: https://npm.pkg.github.com/download/@liberte-top/shared/0.0.3/44efc55e67d6634741e9bf9f570c8abf22fcbc4b}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1529,7 +1529,7 @@ snapshots:
     dependencies:
       svelte: 5.38.0
 
-  '@liberte-top/shared@0.0.2': {}
+  '@liberte-top/shared@0.0.3': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
