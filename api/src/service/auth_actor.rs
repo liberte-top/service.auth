@@ -5,6 +5,7 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 
 use crate::repo::account_emails::AccountEmailsRepo;
+use crate::repo::api_key_scopes::ApiKeyScopesRepo;
 use crate::repo::api_keys::ApiKeysRepo;
 use crate::repo::sessions::SessionsRepo;
 use crate::repo::{account_scopes::AccountScopesRepo, accounts::AccountsRepo};
@@ -38,6 +39,7 @@ pub trait AuthActorService: Send + Sync {
 pub struct AuthActorServiceImpl {
     config: Arc<dyn ConfigService>,
     api_keys_repo: Arc<dyn ApiKeysRepo>,
+    api_key_scopes_repo: Arc<dyn ApiKeyScopesRepo>,
     accounts_repo: Arc<dyn AccountsRepo>,
     account_emails_repo: Arc<dyn AccountEmailsRepo>,
     account_scopes_repo: Arc<dyn AccountScopesRepo>,
@@ -48,6 +50,7 @@ impl AuthActorServiceImpl {
     pub fn new(
         config: Arc<dyn ConfigService>,
         api_keys_repo: Arc<dyn ApiKeysRepo>,
+        api_key_scopes_repo: Arc<dyn ApiKeyScopesRepo>,
         accounts_repo: Arc<dyn AccountsRepo>,
         account_emails_repo: Arc<dyn AccountEmailsRepo>,
         account_scopes_repo: Arc<dyn AccountScopesRepo>,
@@ -56,6 +59,7 @@ impl AuthActorServiceImpl {
         Self {
             config,
             api_keys_repo,
+            api_key_scopes_repo,
             accounts_repo,
             account_emails_repo,
             account_scopes_repo,
@@ -170,7 +174,22 @@ impl AuthActorServiceImpl {
             .ok()
             .flatten()?;
 
-        let _ = self.api_keys_repo.touch_last_used(key).await;
+        let _ = self.api_keys_repo.touch_last_used(key.clone()).await;
+
+        let token_scopes = self
+            .api_key_scopes_repo
+            .list_by_api_key_id(key.id)
+            .await
+            .ok()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|item| item.scope_name)
+            .collect::<Vec<_>>();
+        let scopes = if token_scopes.is_empty() {
+            self.resolve_scopes(account.id).await
+        } else {
+            token_scopes
+        };
 
         Some(ResolvedAuthActor {
             account_id: account.id,
@@ -178,7 +197,7 @@ impl AuthActorServiceImpl {
             principal_type: account.account_type,
             email: self.resolve_primary_email(account.id).await,
             auth_type: "api_key".to_owned(),
-            scopes: self.resolve_scopes(account.id).await,
+            scopes,
         })
     }
 }

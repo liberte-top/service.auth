@@ -4,6 +4,7 @@ use sea_orm_migration::prelude::*;
 mod account_emails;
 mod account_profiles;
 mod account_scopes;
+mod api_key_scopes;
 mod accounts;
 mod api_keys;
 mod email_tokens;
@@ -23,6 +24,7 @@ pub async fn apply(conn: &DatabaseConnection) -> Result<(), DbErr> {
     accounts::apply(&manager, conn).await?;
     sessions::apply(&manager, conn).await?;
     api_keys::apply(&manager, conn).await?;
+    api_key_scopes::apply(&manager, conn).await?;
     account_scopes::apply(&manager, conn).await?;
     account_emails::apply(&manager, conn).await?;
     account_profiles::apply(&manager, conn).await?;

@@ -20,6 +20,7 @@ pub struct UpdateSelfProfileRequest {
 pub struct CreateApiTokenRequest {
     pub name: String,
     pub expires_at: Option<DateTime<Utc>>,
+    pub scopes: Option<Vec<String>>,
 }
 
 async fn require_actor(
@@ -129,10 +130,26 @@ pub async fn create_self_token(
             account_id: actor.account_id,
             name: payload.name,
             expires_at: payload.expires_at,
+            scopes: validate_requested_scopes(payload.scopes.unwrap_or_default(), &actor.scopes)?,
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok((StatusCode::CREATED, Json(token)))
+}
+
+fn validate_requested_scopes(requested: Vec<String>, granted: &[String]) -> Result<Vec<String>, StatusCode> {
+    if requested.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    if requested
+        .iter()
+        .all(|scope| granted.iter().any(|item| item == scope))
+    {
+        Ok(requested)
+    } else {
+        Err(StatusCode::FORBIDDEN)
+    }
 }
 
 #[utoipa::path(

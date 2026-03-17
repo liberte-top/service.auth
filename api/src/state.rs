@@ -6,6 +6,7 @@ use crate::{
     repo::account_profiles::AccountProfilesRepo,
     repo::account_scopes::AccountScopesRepo,
     repo::accounts::AccountsRepo,
+    repo::api_key_scopes::ApiKeyScopesRepo,
     repo::api_keys::ApiKeysRepo,
     repo::email_tokens::EmailTokensRepo,
     repo::route_policies::RoutePoliciesRepo,
@@ -46,6 +47,7 @@ impl DatabaseClient for SeaOrmDatabaseClient {
 
 pub struct AppState {
     db: Arc<dyn DatabaseClient>,
+    api_key_scopes_repo: Arc<dyn ApiKeyScopesRepo>,
     api_keys_repo: Arc<dyn ApiKeysRepo>,
     account_emails_repo: Arc<dyn AccountEmailsRepo>,
     account_profiles_repo: Arc<dyn AccountProfilesRepo>,
@@ -67,6 +69,9 @@ pub struct AppState {
 impl AppState {
     pub async fn new() -> Arc<Self> {
         let db = Arc::new(SeaOrmDatabaseClient::new().await);
+        let api_key_scopes_repo = Arc::new(
+            crate::repo::api_key_scopes::SeaOrmApiKeyScopesRepo::new(db.clone()),
+        );
         let api_keys_repo = Arc::new(crate::repo::api_keys::SeaOrmApiKeysRepo::new(db.clone()));
         let account_emails_repo = Arc::new(
             crate::repo::account_emails::SeaOrmAccountEmailsRepo::new(db.clone()),
@@ -90,6 +95,7 @@ impl AppState {
         ));
         let api_tokens = Arc::new(crate::service::api_tokens::ApiTokensServiceImpl::new(
             api_keys_repo.clone(),
+            api_key_scopes_repo.clone(),
         ));
         let profile = Arc::new(crate::service::profile::ProfileServiceImpl::new(
             account_profiles_repo.clone(),
@@ -100,6 +106,7 @@ impl AppState {
         let auth_actor = Arc::new(crate::service::auth_actor::AuthActorServiceImpl::new(
             config.clone(),
             api_keys_repo.clone(),
+            api_key_scopes_repo.clone(),
             accounts_repo.clone(),
             account_emails_repo.clone(),
             account_scopes_repo.clone(),
@@ -132,6 +139,7 @@ impl AppState {
 
         Arc::new(Self {
             db,
+            api_key_scopes_repo,
             api_keys_repo,
             account_emails_repo,
             account_profiles_repo,

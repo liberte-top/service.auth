@@ -20,6 +20,7 @@
   const tokenExpiry = $derived(form?.kind === "token-create" ? form.expiresAt : "");
   const createdToken = $derived(form?.kind === "token-create" ? form.createdToken : undefined);
   const scopeCatalog = $derived(new Map(data.scopeCatalog.map((scope) => [scope.name, scope])));
+  const tokenScopes = $derived(form?.kind === "token-create" ? (form.scopes ?? data.profile.scopes) : data.profile.scopes);
 
   function formatDateTime(value: string | null | undefined) {
     if (!value) {
@@ -154,6 +155,20 @@
           <Input name="expires_at" type="datetime-local" value={tokenExpiry} />
         </Field>
 
+        <Field label={translate(data.language, "auth.tokens.scopesLabel")} optional={translate(data.language, "auth.tokens.scopesHint")}>
+          <div class="scope-options">
+            {#each data.profile.scopes as scope}
+              <label class="scope-option">
+                <input type="checkbox" name="scopes" value={scope} checked={tokenScopes.includes(scope)} />
+                <div class="scope-option-copy">
+                  <code>{scope}</code>
+                  <span>{scopeCatalog.get(scope)?.description || scope}</span>
+                </div>
+              </label>
+            {/each}
+          </div>
+        </Field>
+
         <Button block type="submit">{translate(data.language, "auth.tokens.createAction")}</Button>
       </form>
 
@@ -173,6 +188,15 @@
                 <span>{translate(data.language, "auth.tokens.lastUsedLabel")}: {formatDateTime(token.last_used_at)}</span>
                 <span>{translate(data.language, "auth.tokens.expiresLabel")}: {formatDateTime(token.expires_at)}</span>
                 <span>{translate(data.language, "auth.tokens.statusLabel")}: {token.revoked_at ? translate(data.language, "auth.tokens.statusRevoked") : translate(data.language, "auth.tokens.statusActive")}</span>
+              </div>
+
+              <div class="scope-list compact-scope-list">
+                {#each token.scopes as scope}
+                  <div class="scope-chip">
+                    <code>{scope}</code>
+                    <span>{scopeCatalog.get(scope)?.description || scope}</span>
+                  </div>
+                {/each}
               </div>
 
               <form method="POST" action="?/revokeToken">
@@ -212,7 +236,8 @@
   .token-list,
   .token-meta,
   .secret-block,
-  .scope-list {
+  .scope-list,
+  .scope-options {
     gap: 16px;
   }
 
@@ -250,6 +275,10 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
   }
 
+  .compact-scope-list {
+    gap: 12px;
+  }
+
   .scope-chip {
     display: grid;
     gap: 6px;
@@ -259,6 +288,31 @@
     color: rgba(255, 255, 255, 0.72);
     font-size: 0.82rem;
     max-width: 18rem;
+  }
+
+  .scope-options {
+    display: grid;
+  }
+
+  .scope-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  .scope-option input {
+    margin: 4px 0 0;
+  }
+
+  .scope-option-copy {
+    display: grid;
+    gap: 6px;
+  }
+
+  .scope-option-copy span {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.82rem;
   }
 
   .token-row {

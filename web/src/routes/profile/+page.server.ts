@@ -73,8 +73,13 @@ export const actions: Actions = {
     const data = await request.formData();
     const name = String(data.get("name") || "").trim();
     const expiresAtRaw = String(data.get("expires_at") || "").trim();
-    const { data: preferences } = await api.getPreferences();
+    const [{ data: preferences }, { data: profile }] = await Promise.all([api.getPreferences(), api.getSelfProfile()]);
     const language = preferences.language;
+    const grantedScopes = profile.scopes;
+    const grantedScopeSet = new Set(grantedScopes);
+    const selectedScopes = Array.from(
+      new Set(data.getAll("scopes").map((value) => String(value).trim()).filter((scope) => grantedScopeSet.has(scope))),
+    );
 
     if (!name) {
       return fail(400, {
@@ -83,6 +88,7 @@ export const actions: Actions = {
         message: translate(language, "auth.tokens.nameRequired"),
         name,
         expiresAt: expiresAtRaw,
+        scopes: selectedScopes,
       });
     }
 
@@ -94,12 +100,14 @@ export const actions: Actions = {
         message: translate(language, "auth.tokens.invalidExpiry"),
         name,
         expiresAt: expiresAtRaw,
+        scopes: selectedScopes,
       });
     }
 
     const result = await api.createSelfToken({
       name,
       expires_at: expiresAt,
+      scopes: selectedScopes,
     });
 
     if (!result.response.ok) {
@@ -109,6 +117,7 @@ export const actions: Actions = {
         message: translate(language, "auth.tokens.createError", { status: result.response.status }),
         name,
         expiresAt: expiresAtRaw,
+        scopes: selectedScopes,
       });
     }
 
@@ -118,6 +127,7 @@ export const actions: Actions = {
       message: translate(language, "auth.tokens.createSuccess"),
       name: "",
       expiresAt: "",
+      scopes: grantedScopes,
       createdToken: result.data,
     };
   },

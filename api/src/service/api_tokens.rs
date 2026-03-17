@@ -6,7 +6,10 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{entities::api_keys, repo::api_keys::ApiKeysRepo};
+use crate::{
+    entities::{api_key_scopes, api_keys},
+    repo::{api_key_scopes::ApiKeyScopesRepo, api_keys::ApiKeysRepo},
+};
 
 #[derive(Serialize, ToSchema)]
 pub struct ApiTokenSummary {
@@ -17,6 +20,7 @@ pub struct ApiTokenSummary {
     pub last_used_at: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
     pub revoked_at: Option<DateTime<Utc>>,
+    pub scopes: Vec<String>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -29,6 +33,7 @@ pub struct CreateApiTokenInput {
     pub account_id: i64,
     pub name: String,
     pub expires_at: Option<DateTime<Utc>>,
+    pub scopes: Vec<String>,
 }
 
 #[async_trait]
@@ -50,15 +55,30 @@ pub trait ApiTokensService: Send + Sync {
 
 pub struct ApiTokensServiceImpl {
     api_keys_repo: Arc<dyn ApiKeysRepo>,
+    api_key_scopes_repo: Arc<dyn ApiKeyScopesRepo>,
 }
 
 impl ApiTokensServiceImpl {
-    pub fn new(api_keys_repo: Arc<dyn ApiKeysRepo>) -> Self {
-        Self { api_keys_repo }
+    pub fn new(
+        api_keys_repo: Arc<dyn ApiKeysRepo>,
+        api_key_scopes_repo: Arc<dyn ApiKeyScopesRepo>,
+    ) -> Self {
+        Self {
+            api_keys_repo,
+            api_key_scopes_repo,
+        }
     }
 
-    fn summary(model: api_keys::Model) -> ApiTokenSummary {
-        ApiTokenSummary {
+    async fn summary(&self, model: api_keys::Model) -> Result<ApiTokenSummary, sea_orm::DbErr> {
+        let scopes = self
+            .api_key_scopes_repo
+            .list_by_api_key_id(model.id)
+            .await?
+            .into_iter()
+            .map(|item| item.scope_name)
+            .collect();
+
+        Ok(ApiTokenSummary {
             id: model.id,
             name: model.name,
             prefix: model.key_prefix,
@@ -66,7 +86,8 @@ impl ApiTokensServiceImpl {
             last_used_at: model.last_used_at.map(|value| value.with_timezone(&Utc)),
             expires_at: model.expires_at.map(|value| value.with_timezone(&Utc)),
             revoked_at: model.revoked_at.map(|value| value.with_timezone(&Utc)),
-        }
+            scopes,
+        })
     }
 
     fn generate_token() -> String {
@@ -91,7 +112,11 @@ impl ApiTokensService for ApiTokensServiceImpl {
         account_id: i64,
     ) -> Result<Vec<ApiTokenSummary>, sea_orm::DbErr> {
         let models = self.api_keys_repo.list_by_account_id(account_id).await?;
-        Ok(models.into_iter().map(Self::summary).collect())
+        let mut tokens = Vec::with_capacity(models.len());
+        for model in models {
+            tokens.push(self.summary(model).await?);
+        }
+        Ok(tokens)
     }
 
     async fn create(
@@ -112,9 +137,25 @@ impl ApiTokensService for ApiTokensServiceImpl {
             })
             .await?;
 
+        if !input.scopes.is_empty() {
+            self.api_key_scopes_repo
+                .insert_many(
+                    input
+                        .scopes
+                        .into_iter()
+                        .map(|scope_name| api_key_scopes::ActiveModel {
+                            api_key_id: sea_orm::Set(inserted.id),
+                            scope_name: sea_orm::Set(scope_name),
+                            ..Default::default()
+                        })
+                        .collect(),
+                )
+                .await?;
+        }
+
         Ok(ApiTokenSecret {
             token,
-            summary: Self::summary(inserted),
+            summary: self.summary(inserted).await?,
         })
     }
 
@@ -132,7 +173,7 @@ impl ApiTokensService for ApiTokensServiceImpl {
         };
 
         let revoked = self.api_keys_repo.revoke(model).await?;
-        Ok(Some(Self::summary(revoked)))
+        Ok(Some(self.summary(revoked).await?))
     }
 
 }

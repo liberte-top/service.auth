@@ -44,6 +44,7 @@ export type ApiTokenSummary = {
   last_used_at?: string | null;
   expires_at?: string | null;
   revoked_at?: string | null;
+  scopes: string[];
 };
 
 export type ApiTokenSecret = {
@@ -54,6 +55,7 @@ export type ApiTokenSecret = {
 export type CreateApiTokenRequest = {
   name: string;
   expires_at?: string | null;
+  scopes?: string[];
 };
 
 function toAuthContext(payload: AuthContextWire): LocalAuthContextResponse {
