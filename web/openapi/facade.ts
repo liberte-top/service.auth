@@ -7,11 +7,10 @@ import type {
   RegisterEmailRequest,
   UpdatePreferencesRequest,
 } from "./client";
+import type { AuthContext, AuthScopeDefinition } from "@liberte-top/shared/auth";
 import { fetch_json, type FetchLike } from "@liberte-top/shared/openapi";
 
-export type LocalAuthContextResponse = AuthContextResponse & {
-  principal_type?: string | null;
-};
+export type LocalAuthContextResponse = AuthContext<"user" | "team" | "robot", "session" | "api_key">;
 
 export type SelfProfileResponse = {
   subject: string;
@@ -72,6 +71,12 @@ export const openapi = {
       getAuthContext() {
         return fetch_json<LocalAuthContextResponse>(fetchFn, {
           path: "/api/v1/auth/context",
+        });
+      },
+
+      getScopeCatalog() {
+        return fetch_json<AuthScopeDefinition[]>(fetchFn, {
+          path: "/api/v1/auth/scopes",
         });
       },
 

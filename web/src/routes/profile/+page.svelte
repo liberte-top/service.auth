@@ -19,6 +19,7 @@
   const tokenName = $derived(form?.kind === "token-create" ? form.name : "");
   const tokenExpiry = $derived(form?.kind === "token-create" ? form.expiresAt : "");
   const createdToken = $derived(form?.kind === "token-create" ? form.createdToken : undefined);
+  const scopeCatalog = $derived(new Map(data.scopeCatalog.map((scope) => [scope.name, scope])));
 
   function formatDateTime(value: string | null | undefined) {
     if (!value) {
@@ -78,14 +79,17 @@
           <code>{data.profile.subject}</code>
         </div>
 
-        <div class="meta-block">
-          <span class="identity-label">{translate(data.language, "auth.profile.scopesLabel")}</span>
-          <div class="scope-list">
-            {#each data.profile.scopes as scope}
-              <code>{scope}</code>
-            {/each}
+          <div class="meta-block">
+            <span class="identity-label">{translate(data.language, "auth.profile.scopesLabel")}</span>
+            <div class="scope-list">
+              {#each data.profile.scopes as scope}
+                <div class="scope-chip">
+                  <code>{scope}</code>
+                  <span>{scopeCatalog.get(scope)?.description || scope}</span>
+                </div>
+              {/each}
+            </div>
           </div>
-        </div>
 
         <div class="actions compact-actions">
           <LinkButton block href="/logout">{translate(data.language, "auth.profile.securityAction")}</LinkButton>
@@ -244,6 +248,17 @@
 
   .scope-list {
     grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  }
+
+  .scope-chip {
+    display: grid;
+    gap: 6px;
+  }
+
+  .scope-chip span {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.82rem;
+    max-width: 18rem;
   }
 
   .token-row {

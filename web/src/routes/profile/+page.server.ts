@@ -24,11 +24,16 @@ export const load: PageServerLoad = async ({ url, fetch }) => {
     throw redirect(303, "/");
   }
 
-  const [{ data: profile }, { data: tokens }] = await Promise.all([api.getSelfProfile(), api.listSelfTokens()]);
+  const [{ data: profile }, { data: tokens }, { data: scopeCatalog }] = await Promise.all([
+    api.getSelfProfile(),
+    api.listSelfTokens(),
+    api.getScopeCatalog(),
+  ]);
 
   return {
     authContext,
     profile,
+    scopeCatalog,
     tokens,
     language: preferences.language,
     canonical: `${url.origin}/profile`,
