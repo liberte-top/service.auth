@@ -1,17 +1,18 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { ensure } from "@liberte-top/shared/ensure";
+import { config } from "$lib/config";
 import { AppError } from "$lib/error";
 import { openapi } from "$openapi";
 import type { Cookies } from "@sveltejs/kit";
 
 function clearAuthCookie(cookies: Cookies) {
-  cookies.set(process.env.FORWARDAUTH_SESSION_COOKIE_NAME || "liberte_session", "", {
+  cookies.set(config.authSessionCookie.name, "", {
     path: "/",
     httpOnly: true,
     secure: true,
     sameSite: "lax",
     expires: new Date(0),
-    domain: process.env.FORWARDAUTH_SESSION_COOKIE_DOMAIN || undefined,
+    domain: config.authSessionCookie.domain,
   });
 }
 

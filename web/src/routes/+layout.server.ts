@@ -1,7 +1,5 @@
-import { env } from "$env/dynamic/private";
+import { config } from "$lib/config";
 import { openapi } from "$openapi";
-import pkg from "../../package.json";
-import versionInfo from "../../public/version.json";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ fetch }) => {
@@ -11,11 +9,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
     api.getPreferenceOptions(),
   ]);
   return {
-    buildInfo: {
-      version: versionInfo.version || pkg.version,
-      sha: versionInfo.git_sha || env.APP_BUILD_SHA || "unknown",
-      timestamp: versionInfo.built_at || env.APP_BUILD_TIMESTAMP || "unknown",
-    },
+    buildInfo: config.buildInfo,
     preferences: preferences,
     preferenceOptions,
   };
