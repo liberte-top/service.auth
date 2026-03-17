@@ -105,3 +105,4 @@ service.auth/
 - Keep GitHub Packages registry mapping and auth in machine-level `~/.npmrc`, not in repository files.
 - Default local setup should be a machine-level `~/.npmrc` entry for GitHub Packages read access; do not depend on one-off `gh auth token` shell injections for routine installs.
 - CI should follow the same model by writing runner-level `~/.npmrc` (or equivalent runner-global npm config) before `pnpm install` rather than restoring repo-local `.npmrc` files.
+- Docker builds also need GitHub Packages read access; pass `GITHUB_PACKAGES_TOKEN` into compose/CI build args rather than vendoring package sources into the image build context.

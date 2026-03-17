@@ -77,6 +77,7 @@ jobs:
           file: ./web/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
+            GITHUB_PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }}
             APP_BUILD_SHA=${{ github.sha }}
             APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           cache-from: type=gha,scope=service-auth-web

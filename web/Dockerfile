@@ -1,6 +1,7 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app/service.auth/web
 RUN corepack enable
+ARG GITHUB_PACKAGES_TOKEN=
 ARG APP_BUILD_SHA=unknown
 ARG APP_BUILD_TIMESTAMP=unknown
 ARG VITE_ENV_LABEL=compose
@@ -11,7 +12,7 @@ ENV VITE_ENV_LABEL=$VITE_ENV_LABEL
 ENV AUTH_API_INTERNAL_URL=$AUTH_API_INTERNAL_URL
 
 COPY service.auth/web/package.json service.auth/web/pnpm-lock.yaml* ./
-COPY packages /app/packages
+RUN if [ -n "$GITHUB_PACKAGES_TOKEN" ]; then printf '%s\n%s\n' "@liberte-top:registry=https://npm.pkg.github.com" "//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_TOKEN" > /root/.npmrc; fi
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --no-frozen-lockfile
 
 COPY service.auth/web .
