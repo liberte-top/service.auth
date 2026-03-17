@@ -25,16 +25,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Checkout packages repo for local-link dependency
-        run: |
-          set -euo pipefail
-          rm -rf ../packages
-          git clone "https://x-access-token:${{ secrets.KUBERNETES_REPO_TOKEN }}@github.com/liberte-top/packages.git" ../packages
-
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: "24.8.0"
+
+      - name: Configure GitHub Packages auth
+        run: |
+          set -euo pipefail
+          cat > "$HOME/.npmrc" <<EOF
+          @liberte-top:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          EOF
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable corepack pnpm
         run: corepack enable
@@ -73,6 +77,7 @@ jobs:
           file: ./web/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
+            GITHUB_PACKAGES_TOKEN=${{ secrets.GITHUB_TOKEN }}
             APP_BUILD_SHA=${{ github.sha }}
             APP_BUILD_TIMESTAMP=${{ steps.build_meta.outputs.timestamp }}
           cache-from: type=gha,scope=service-auth-web

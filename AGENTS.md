@@ -99,3 +99,10 @@ service.auth/
 - Keep `docker-compose.yml` aligned with `.env.example` keys.
 - Treat runtime data as disposable during the current experiment: it is acceptable to reset or clear environments to unblock end-to-end auth testing.
 - Treat the delivery path as non-disposable: even for urgent fixes on experimental environments, code changes must still ship through the normal commit + CI + promotion flow instead of ad hoc manual image builds or direct cluster-only hotfixes.
+
+## Shared Package Consumption
+- `web/` now consumes `@liberte-top/shared` and `@liberte-top/components` from GitHub Packages rather than the legacy local `../../packages/npm/*` paths.
+- Keep GitHub Packages registry mapping and auth in machine-level `~/.npmrc`, not in repository files.
+- Default local setup should be a machine-level `~/.npmrc` entry for GitHub Packages read access; do not depend on one-off `gh auth token` shell injections for routine installs.
+- CI should follow the same model by writing runner-level `~/.npmrc` (or equivalent runner-global npm config) before `pnpm install` rather than restoring repo-local `.npmrc` files.
+- Docker builds also need GitHub Packages read access; pass `GITHUB_PACKAGES_TOKEN` into compose/CI build args rather than vendoring package sources into the image build context.

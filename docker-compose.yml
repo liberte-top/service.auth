@@ -47,6 +47,7 @@ services:
       context: ..
       dockerfile: service.auth/web/Dockerfile
       args:
+        GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN:-}
         VITE_ENV_LABEL: ${WEB_VITE_ENV_LABEL:-compose}
     environment:
       AUTH_API_INTERNAL_URL: http://auth-api:3333
