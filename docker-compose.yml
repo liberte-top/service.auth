@@ -20,6 +20,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://auth:auth@db:5432/auth}
       PORT: "${API_PORT:-3333}"
       MAIL_GRPC_ADDR: http://mail:50051
+      EMAIL_VERIFY_BASE_URL: ${EMAIL_VERIFY_BASE_URL:-https://auth.liberte.top/auth/verify/email}
+      EMAIL_LOGIN_BASE_URL: ${EMAIL_LOGIN_BASE_URL:-https://auth.liberte.top/auth/login/email/complete}
     ports:
       - "${API_PORT:-3333}:3333"
     depends_on:
