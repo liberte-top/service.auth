@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { ensure } from "@liberte-top/shared/ensure";
 import { config } from "$lib/config";
 import { AppError } from "$lib/error";
-import { openapi } from "$openapi";
+import { createServerApi } from "$lib/server/api";
 import type { Cookies } from "@sveltejs/kit";
 
 function clearAuthCookie(cookies: Cookies) {
@@ -43,9 +43,14 @@ function clearAuthCookieFromHeader(cookies: Cookies, setCookieHeader: string) {
   });
 }
 
-async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], fetch: Parameters<PageServerLoad>[0]["fetch"]) {
-  const response = await fetch("/api/v1/auth/logout", {
+async function performLogout(
+  cookies: Parameters<PageServerLoad>[0]["cookies"],
+  requestHeaders: Headers,
+) {
+  const response = await fetch(`${config.api.internalOrigin}/api/v1/auth/logout`, {
     method: "POST",
+    headers: requestHeaders.get("cookie") ? { cookie: requestHeaders.get("cookie")! } : undefined,
+    redirect: "manual",
   });
 
   const setCookie = ensure.nonEmpty(response.headers.get("set-cookie"), () => AppError.logoutCookieMissing(), () => clearAuthCookie(cookies));
@@ -55,8 +60,8 @@ async function performLogout(cookies: Parameters<PageServerLoad>[0]["cookies"], 
 }
 
 export const actions: Actions = {
-  default: async ({ cookies, fetch }) => {
-    await performLogout(cookies, fetch);
+  default: async ({ cookies, request }) => {
+    await performLogout(cookies, request.headers);
 
     return {
       success: true,
@@ -64,8 +69,8 @@ export const actions: Actions = {
   }
 };
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
-  const api = openapi.create(fetch);
+export const load: PageServerLoad = async ({ url, fetch, request }) => {
+  const api = createServerApi(fetch, request.headers);
   const { data: preferences } = await api.getPreferences();
   return {
     language: preferences.language,

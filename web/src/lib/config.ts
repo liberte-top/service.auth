@@ -11,6 +11,10 @@ export const authSessionCookieConfig = {
   domain: env.FORWARDAUTH_SESSION_COOKIE_DOMAIN || undefined,
 } as const;
 
+export const apiConfig = {
+  internalOrigin: withFallback(env.AUTH_API_INTERNAL_URL, "http://auth-api:3333"),
+} as const;
+
 export const buildInfoConfig = {
   version: withFallback(versionInfo.version, pkg.version),
   sha: withFallback(versionInfo.git_sha || env.APP_BUILD_SHA, "unknown"),
@@ -18,6 +22,7 @@ export const buildInfoConfig = {
 } as const;
 
 export const config = {
+  api: apiConfig,
   authSessionCookie: authSessionCookieConfig,
   buildInfo: buildInfoConfig,
 } as const;

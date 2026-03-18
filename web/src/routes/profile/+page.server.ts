@@ -1,5 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { openapi } from "$openapi";
+import { createServerApi } from "$lib/server/api";
 import { translate } from "$lib/i18n/copy";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -16,8 +16,8 @@ function parseOptionalDateTime(value: string): string | null | symbol {
   return parsed.toISOString();
 }
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
-  const api = openapi.create(fetch);
+export const load: PageServerLoad = async ({ url, fetch, request }) => {
+  const api = createServerApi(fetch, request.headers);
   const [{ data: authContext }, { data: preferences }] = await Promise.all([api.getAuthContext(), api.getPreferences()]);
 
   if (!authContext.authenticated) {
@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ url, fetch }) => {
 
 export const actions: Actions = {
   updateProfile: async ({ fetch, request }) => {
-    const api = openapi.create(fetch);
+    const api = createServerApi(fetch, request.headers);
     const data = await request.formData();
     const displayName = String(data.get("display_name") || "").trim();
     const { data: preferences } = await api.getPreferences();
@@ -69,7 +69,7 @@ export const actions: Actions = {
   },
 
   createToken: async ({ fetch, request }) => {
-    const api = openapi.create(fetch);
+    const api = createServerApi(fetch, request.headers);
     const data = await request.formData();
     const name = String(data.get("name") || "").trim();
     const expiresAtRaw = String(data.get("expires_at") || "").trim();
@@ -133,7 +133,7 @@ export const actions: Actions = {
   },
 
   revokeToken: async ({ fetch, request }) => {
-    const api = openapi.create(fetch);
+    const api = createServerApi(fetch, request.headers);
     const data = await request.formData();
     const id = Number(String(data.get("id") || "").trim());
     const { data: preferences } = await api.getPreferences();

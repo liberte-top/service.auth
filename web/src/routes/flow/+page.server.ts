@@ -1,10 +1,10 @@
+import { createServerApi } from "$lib/server/api";
 import type { PageServerLoad } from "./$types";
-import { openapi } from "$openapi";
 
 export type FlowStep = "verify-success" | "verify-invalid" | "login-success" | "login-invalid";
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
-  const api = openapi.create(fetch);
+export const load: PageServerLoad = async ({ url, fetch, request }) => {
+  const api = createServerApi(fetch, request.headers);
   const requestedStep = url.searchParams.get("step");
   const step: FlowStep =
     requestedStep === "verify-invalid" || requestedStep === "login-success" || requestedStep === "login-invalid"

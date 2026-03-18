@@ -1,10 +1,10 @@
+import { createServerApi } from "$lib/server/api";
 import type { Actions, PageServerLoad } from "./$types";
 import { fail } from "@sveltejs/kit";
-import { openapi } from "$openapi";
 import { translate } from "$lib/i18n/copy";
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
-  const api = openapi.create(fetch);
+export const load: PageServerLoad = async ({ fetch, request, url }) => {
+  const api = createServerApi(fetch, request.headers);
   const [{ data: authContext }, { data: preferences }] = await Promise.all([api.getAuthContext(), api.getPreferences()]);
   const email = url.searchParams.get("email") || "";
   const rewrite = url.searchParams.get("rewrite") || url.searchParams.get("return_to") || "";
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 
 export const actions: Actions = {
   default: async ({ fetch, request, url }) => {
-    const api = openapi.create(fetch);
+    const api = createServerApi(fetch, request.headers);
     const data = await request.formData();
     const intent = String(data.get("intent") || "register");
     const email = String(data.get("email") || "").trim();
