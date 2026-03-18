@@ -58,6 +58,7 @@ SELECT a.id, seed.scope_name
 FROM (
   VALUES
     ('notes:read'),
+    ('notes:write'),
     ('profile:read')
 ) AS seed(scope_name)
 JOIN accounts a ON lower(a.username) = 'demo-user'
