@@ -61,13 +61,11 @@ impl ConfigServiceImpl {
         let email_verify_base_url = env::var("EMAIL_VERIFY_BASE_URL")
             .ok()
             .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| "https://auth.liberte.top/api/v1/auth/verify/email".to_owned());
+            .unwrap_or_else(|| "https://auth.liberte.top/auth/verify/email".to_owned());
         let email_login_base_url = env::var("EMAIL_LOGIN_BASE_URL")
             .ok()
             .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| {
-                "https://auth.liberte.top/api/v1/auth/login/email/complete".to_owned()
-            });
+            .unwrap_or_else(|| "https://auth.liberte.top/auth/login/email/complete".to_owned());
         let email_token_ttl_secs = env::var("EMAIL_TOKEN_TTL_SECS")
             .ok()
             .and_then(|value| value.trim().parse::<i64>().ok())
